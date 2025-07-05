@@ -1,8 +1,20 @@
-use std::ops::{Bound, Range, RangeBounds, RangeInclusive};
+use std::ops::{
+    Bound, Range, RangeBounds, RangeFrom, RangeFull, RangeInclusive, RangeTo, RangeToInclusive,
+};
 
 use mint::Vector2;
 
 use crate::util::*;
+
+const MIN: Vector2<i32> = Vector2 {
+    x: i32::MIN,
+    y: i32::MIN,
+};
+
+const MAX: Vector2<i32> = Vector2 {
+    x: i32::MAX - 1,
+    y: i32::MAX - 1,
+};
 
 /// Area occupied by a 2d array.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -26,6 +38,17 @@ impl Boundary {
         dimension: Vector2 { x: 0, y: 0 },
     };
 
+    pub const ALL: Self = Self {
+        min: Vector2 {
+            x: i32::MIN,
+            y: i32::MIN,
+        },
+        dimension: Vector2 {
+            x: u32::MAX,
+            y: u32::MAX,
+        },
+    };
+
     pub fn is_empty(&self) -> bool {
         self.dimension.x == 0 || self.dimension.y == 0
     }
@@ -39,34 +62,23 @@ impl Boundary {
     }
 
     pub fn max(&self) -> Vector2<i32> {
-        sub(add(self.min, u2i(self.dimension)), [1, 1].into())
+        sub(addu(self.min, self.dimension), [1, 1].into())
     }
 
     /// Returns `min + dimension` or `max + [1, 1]`.
     pub fn max_non_inclusive(&self) -> Vector2<i32> {
-        add(self.min, u2i(self.dimension))
+        addu(self.min, self.dimension)
     }
 
     pub fn intersection(&self, other: Boundary) -> Option<Boundary> {
-        let Boundary {
-            min: v1,
-            dimension: d1,
-        } = *self;
-        let Boundary {
-            min: v2,
-            dimension: d2,
-        } = other;
-        let min = vec_max(v1, v2);
-        let u1 = add(v1, u2i(d1));
-        let u2 = add(v2, u2i(d2));
+        let min = vec_max(self.min, other.min);
+        let u1 = self.max_non_inclusive();
+        let u2 = other.max_non_inclusive();
         let max = vec_min(u1, u2);
         if max.x < min.x || max.y < min.y {
             None
         } else {
-            Some(Boundary {
-                min,
-                dimension: i2u(sub(max, min)),
-            })
+            Some(Boundary::min_max_non_inclusive(min, max))
         }
     }
 
@@ -81,8 +93,16 @@ impl Boundary {
     pub fn min_max(min: impl Into<Vector2<i32>>, max: impl Into<Vector2<i32>>) -> Self {
         let min = min.into();
         let max = max.into();
-        let dimension = i2u(add(abs(sub(max, min)), [1, 1].into()));
-        Boundary { min, dimension }
+        if min == MIN && max == MAX {
+            // since length is u32::MAX + 1
+            Boundary::ALL
+        } else {
+            let dimension = Vector2 {
+                x: max.x.wrapping_sub(min.x).wrapping_add(1) as u32,
+                y: max.y.wrapping_sub(min.y).wrapping_add(1) as u32,
+            };
+            Boundary { min, dimension }
+        }
     }
 
     pub(crate) fn min_max_non_inclusive(
@@ -91,7 +111,10 @@ impl Boundary {
     ) -> Self {
         let min = min.into();
         let max = max.into();
-        let dimension = i2u(abs(sub(max, min)));
+        let dimension = Vector2 {
+            x: max.x.wrapping_sub(min.x) as u32,
+            y: max.y.wrapping_sub(min.y) as u32,
+        };
         Boundary { min, dimension }
     }
 
@@ -123,12 +146,12 @@ impl Boundary {
         let max_x = match x.end_bound() {
             Bound::Included(v) => *v,
             Bound::Excluded(v) => *v - 1,
-            Bound::Unbounded => i32::MAX,
+            Bound::Unbounded => i32::MAX - 1,
         };
         let max_y = match y.end_bound() {
             Bound::Included(v) => *v,
             Bound::Excluded(v) => *v - 1,
-            Bound::Unbounded => i32::MAX,
+            Bound::Unbounded => i32::MAX - 1,
         };
         Boundary::min_max([min_x, min_y], [max_x, max_y])
     }
@@ -137,8 +160,8 @@ impl Boundary {
         let position = position.into();
         position.x >= self.min.x
             && position.y >= self.min.y
-            && position.x < self.min.x + self.dimension.x as i32
-            && position.y < self.min.y + self.dimension.y as i32
+            && position.x < self.min.x.wrapping_add(self.dimension.x as i32)
+            && position.y < self.min.y.wrapping_add(self.dimension.y as i32)
     }
 }
 
@@ -169,6 +192,33 @@ impl<U: Into<Vector2<i32>>> IntoBoundary for RangeInclusive<U> {
     fn into_boundary(self) -> Boundary {
         let (min, max) = self.into_inner();
         Boundary::min_max(min, max)
+    }
+}
+
+impl<U: Into<Vector2<i32>>> IntoBoundary for RangeFrom<U> {
+    fn into_boundary(self) -> Boundary {
+        let min = self.start.into();
+        Boundary::min_max(min, MAX)
+    }
+}
+
+impl<U: Into<Vector2<i32>>> IntoBoundary for RangeTo<U> {
+    fn into_boundary(self) -> Boundary {
+        let max: Vector2<i32> = self.end.into();
+        Boundary::min_max_non_inclusive(MIN, max)
+    }
+}
+
+impl<U: Into<Vector2<i32>>> IntoBoundary for RangeToInclusive<U> {
+    fn into_boundary(self) -> Boundary {
+        let max: Vector2<i32> = self.end.into();
+        Boundary::min_max(MIN, max)
+    }
+}
+
+impl IntoBoundary for RangeFull {
+    fn into_boundary(self) -> Boundary {
+        Boundary::ALL
     }
 }
 

@@ -2,49 +2,64 @@ use std::mem;
 
 use mint::Vector2;
 
-pub fn add(left: Vector2<i32>, right: Vector2<i32>) -> Vector2<i32> {
+#[track_caller]
+pub(crate) fn add(left: Vector2<i32>, right: Vector2<i32>) -> Vector2<i32> {
     Vector2 {
         x: left.x + right.x,
         y: left.y + right.y,
     }
 }
 
-pub fn sub(left: Vector2<i32>, right: Vector2<i32>) -> Vector2<i32> {
+#[track_caller]
+pub(crate) fn addu(left: Vector2<i32>, right: Vector2<u32>) -> Vector2<i32> {
+    Vector2 {
+        x: left.x.wrapping_add(right.x as i32),
+        y: left.y.wrapping_add(right.y as i32),
+    }
+}
+
+#[track_caller]
+pub(crate) fn sub(left: Vector2<i32>, right: Vector2<i32>) -> Vector2<i32> {
     Vector2 {
         x: left.x - right.x,
         y: left.y - right.y,
     }
 }
 
-pub fn vec_min(left: Vector2<i32>, right: Vector2<i32>) -> Vector2<i32> {
+#[track_caller]
+pub(crate) fn vec_min(left: Vector2<i32>, right: Vector2<i32>) -> Vector2<i32> {
     Vector2 {
         x: left.x.min(right.x),
         y: left.y.min(right.y),
     }
 }
 
-pub fn vec_max(left: Vector2<i32>, right: Vector2<i32>) -> Vector2<i32> {
+#[track_caller]
+pub(crate) fn vec_max(left: Vector2<i32>, right: Vector2<i32>) -> Vector2<i32> {
     Vector2 {
         x: left.x.max(right.x),
         y: left.y.max(right.y),
     }
 }
 
-pub fn u2i(v: Vector2<u32>) -> Vector2<i32> {
+#[track_caller]
+pub(crate) fn u2i(v: Vector2<u32>) -> Vector2<i32> {
     Vector2 {
         x: v.x as i32,
         y: v.y as i32,
     }
 }
 
-pub fn i2u(v: Vector2<i32>) -> Vector2<u32> {
+#[track_caller]
+pub(crate) fn i2u(v: Vector2<i32>) -> Vector2<u32> {
     Vector2 {
         x: v.x.max(0) as u32,
         y: v.y.max(0) as u32,
     }
 }
 
-pub fn abs(v: Vector2<i32>) -> Vector2<i32> {
+#[track_caller]
+pub(crate) fn abs(v: Vector2<i32>) -> Vector2<i32> {
     Vector2 {
         x: v.x.abs(),
         y: v.y.abs(),

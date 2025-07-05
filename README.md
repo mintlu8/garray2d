@@ -7,8 +7,8 @@ Game development focused 2d array with signed index and offset support.
 
 ## Design
 
-`Array2d` represents a rectangle region in a tileset,
-with non-represented region considered `Default::default`.
+`Array2d` represents a rectangular region in a tile map,
+with non-represented regions considered `Default::default`.
 This allows us to implement functions like `resize` that are geometric
 instead of reinterpreting the underlying bytes.
 
@@ -39,7 +39,7 @@ here are the common implementors of these types.
 | - | - | - |
 | `Boundary` | `Boundary::min_max([0, 0], [5, 8])` | |
 | `[u32; 2]` | `[5, 8]` | Represents `[0, 0]..[5, 8]` |
-| `impl Into<Vector2<i32>>..impl Into<Vector2<i32>>` | `[-1, -1]..[1, 1]` | Also for `..=`. |
+| `impl RangeBounds<Into<Vector2<i32>>>` | `[-1, -1]..[1, 1]` | Only for `std` types |
 | `(impl RangeBounds<i32>, impl RangeBounds<i32>)` | `(-1..=1, -1..1)` | |
 
 * `Into<Vector2<i32>>`

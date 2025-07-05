@@ -3,6 +3,8 @@
 mod boundary;
 mod index;
 mod resize;
+#[cfg(feature = "serde")]
+mod serde;
 mod storage;
 mod util;
 mod zip;
@@ -151,7 +153,7 @@ impl<T: Array2dStorage> GenericArray2d<T> {
         let slice = self.data.slice();
         let len = self.boundary.dimension.x as usize;
         slice
-            .chunks(self.pitch)
+            .chunks(self.pitch.max(1))
             .map(move |slice| &slice[..len])
             .take(self.boundary.dimension.y as usize)
     }
@@ -200,7 +202,7 @@ impl<T: Array2dStorageMut> GenericArray2d<T> {
         let slice = self.data.slice_mut();
         let len = self.boundary.dimension.x as usize;
         slice
-            .chunks_mut(self.pitch)
+            .chunks_mut(self.pitch.max(1))
             .map(move |slice| &mut slice[..len])
             .take(self.boundary.dimension.x as usize)
     }
