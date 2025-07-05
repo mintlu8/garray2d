@@ -13,6 +13,8 @@ Game development focused 2d array with signed index and offset support.
 """
 keywords = ["array", "2d", "grid"]
 
+[lib]
+doctest = false
 
 [dependencies]
 mint = "0.5.9"
