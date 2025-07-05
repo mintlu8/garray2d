@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use garray2d::{Array2d, Boundary};
+use garray2d::{Array2d, Boundary, Zip};
 use glam::IVec2;
 
 #[track_caller]
@@ -148,12 +148,12 @@ pub fn resize() {
     iter_eq(
         arr.rows(),
         [
-            &[0, 0, 0, 0,],
-            &[0, 1, 0, 0,],
-            &[0, 2, 0, 0,],
-            &[0, 3, 0, 0,],
-            &[0, 4, 0, 0,],
-            &[0, 0, 0, 0,],
+            &[0, 0, 0, 0],
+            &[0, 1, 0, 0],
+            &[0, 2, 0, 0],
+            &[0, 3, 0, 0],
+            &[0, 4, 0, 0],
+            &[0, 0, 0, 0],
         ] as [&[_]; 6],
     );
 
@@ -178,7 +178,7 @@ pub fn resize() {
     );
 
     let mut arr = Array2d::init((0..=1, 0..=5), |v: IVec2| v.y);
-    arr.resize((-2..=1, 1..=3,));
+    arr.resize((-2..=1, 1..=3));
 
     iter_eq(
         arr.rows(),
@@ -241,5 +241,59 @@ pub fn paint() {
             &[0, 1, 2, 1, 0],
             &[0, 0, 1, 0, 0],
         ] as [&[_]; 5],
+    );
+
+    let mut canvas = Array2d::<i32>::new([-2, -2]..=[2, 2]);
+    let brush = Array2d::<i32>::init([-2, -2]..=[2, 2], |v: IVec2| {
+        (3 - (v.x.abs() + v.y.abs())).max(0)
+    });
+
+    canvas.paint(&brush, [2, 1], |a, b| *a += *b);
+    iter_eq(
+        canvas.rows(),
+        [
+            &[0, 0, 0, 0, 0],
+            &[0, 0, 0, 0, 1],
+            &[0, 0, 0, 1, 2],
+            &[0, 0, 1, 2, 3],
+            &[0, 0, 0, 1, 2],
+        ] as [&[_]; 5],
+    );
+}
+
+#[test]
+pub fn expand() {
+    let mut a = Array2d::from_vec(vec![1, 2, 3, 4], [2, 0]..=[3, 1]);
+    let b = Array2d::from_vec(vec![1, 2, 3, 4], [0, 2]..=[1, 3]);
+
+    a.merge(&b);
+
+    iter_eq(
+        a.rows(),
+        [&[0, 0, 1, 2], &[0, 0, 3, 4], &[1, 2, 0, 0], &[3, 4, 0, 0]] as [&[_]; 4],
+    )
+}
+
+#[test]
+pub fn zip() {
+    let mut a = Array2d::from_vec(vec![9, 4, 7, 3, 6, 1, 2, 8, 5], [0, 0]..=[2, 2]);
+    let b = Array2d::from_vec(vec![5, 9, 4, 7, 3, 6, 1, 2, 8], [0, 0]..=[2, 2]);
+
+    let v = Zip(&a, &b).map(|a, b| a > b);
+
+    iter_eq(
+        v.rows(),
+        [
+            &[true, false, true],
+            &[false, true, false],
+            &[true, true, false],
+        ] as [&[_]; 3],
+    );
+
+    Zip(&mut a, &b).for_each_mut(|a, b| *a += *b);
+
+    iter_eq(
+        a.rows(),
+        [&[14, 13, 11], &[10, 9, 7], &[3, 10, 13]] as [&[_]; 3],
     );
 }

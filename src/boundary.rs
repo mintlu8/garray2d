@@ -143,7 +143,7 @@ impl Boundary {
 }
 
 /// Types that can be used as [`Boundary`],
-/// 
+///
 /// implemented on `Boundary`, `Range<impl Into<Vector2<i32>>` (i.e. `[0, 0]..[4, 5]`),
 /// `RangeInclusive<impl Into<Vector2<i32>>` (i.e. `[0, 0]..=[4, 5]`) and
 /// `(impl RangeBounds<i32>, impl RangeBounds<i32>)` (i.e. `(0..4, 0..=5)`)
@@ -179,5 +179,14 @@ impl<U: Into<Vector2<i32>>> IntoBoundary for RangeInclusive<U> {
 impl<A: RangeBounds<i32>, B: RangeBounds<i32>> IntoBoundary for (A, B) {
     fn into_boundary(self) -> Boundary {
         Boundary::xy(self.0, self.1)
+    }
+}
+
+impl IntoBoundary for [u32; 2] {
+    fn into_boundary(self) -> Boundary {
+        Boundary {
+            min: Vector2 { x: 0, y: 0 },
+            dimension: self.into(),
+        }
     }
 }

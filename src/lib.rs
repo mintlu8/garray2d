@@ -1,50 +1,27 @@
-//! Game focused 2d array with signed index and offset support.
-//!
-//! # Design
-//!
-//! `Array2d` represents a rectangle region in a tileset,
-//! with non-represented region considered `Default::default`.
-//! This allows us to implement functions like `resize` that are geometric
-//! instead of reinterpreting the underlying bytes.
-//!
-//! # Usage with Math Libraries
-//!
-//! This crate uses [`mint`] to interop with math crates like `glam` or `nalgebra`.
-//! In `glam` or `bevy_math` for example, you might want enable the `mint` feature.
-//!
-//! The core trait [`Into<Vector2<i32>>`] is implemented by types like `glam`'s `IVec2`.
-//! Additionally, `[i32; 2]` always implements this trait and should be the easiest way to
-//! create a quick constant.
-//!
-//! ```
-//! # use garray2d::Array2d;
-//! # let array = Array2d::<i32>::default();
-//! array.get([1, 2])
-//! # ;
-//! ```
+#![doc = include_str!("../README.md")]
 
 mod boundary;
 mod index;
-mod zip;
 mod resize;
 mod storage;
 mod util;
+mod zip;
 use std::fmt::Debug;
 use util::*;
 
 use mint::Vector2;
 
-use storage::{Array2dStorage, Array2dStorageMut, Array2dStorageOwned};
-use index::Array2dIndexing;
-use boundary::IntoBoundary;
 pub use boundary::Boundary;
+use boundary::IntoBoundary;
+use index::Array2dIndexing;
+use storage::{Array2dStorage, Array2dStorageMut, Array2dStorageOwned};
 pub use zip::Zip;
 
 pub mod traits {
     //! Lesser used traits.
+    pub use crate::boundary::IntoBoundary;
     pub use crate::index::Array2dIndexing;
     pub use crate::storage::{Array2dStorage, Array2dStorageMut, Array2dStorageOwned};
-    pub use crate::boundary::IntoBoundary;
     pub use crate::zip::GenericArray2dRef;
 }
 
@@ -307,8 +284,10 @@ where
         }
     }
 
+    #[track_caller]
     pub fn from_vec(vec: Vec<T::Item>, boundary: impl IntoBoundary) -> Self {
         let boundary = boundary.into_boundary();
+        assert!(vec.len() >= boundary.len(), "Not enough items.");
         GenericArray2d {
             data: T::from_vec(vec),
             boundary,
@@ -320,6 +299,7 @@ where
 impl<'t, T> Array2dRef<'t, T> {
     pub fn from_slice(slice: &'t [T], boundary: impl IntoBoundary) -> Self {
         let boundary = boundary.into_boundary();
+        assert!(slice.len() >= boundary.len(), "Not enough items.");
         Array2dRef {
             data: slice,
             boundary,
@@ -329,6 +309,10 @@ impl<'t, T> Array2dRef<'t, T> {
 
     pub fn from_slice_pitch(slice: &'t [T], boundary: impl IntoBoundary, pitch: usize) -> Self {
         let boundary = boundary.into_boundary();
+        assert!(
+            slice.len() >= boundary.dimension.y as usize * pitch,
+            "Not enough items."
+        );
         assert!(
             pitch >= boundary.pitch(),
             "Pitch must be larger than boundary."
@@ -344,6 +328,7 @@ impl<'t, T> Array2dRef<'t, T> {
 impl<'t, T> Array2dMut<'t, T> {
     pub fn from_slice(slice: &'t mut [T], boundary: impl IntoBoundary) -> Self {
         let boundary = boundary.into_boundary();
+        assert!(slice.len() >= boundary.len(), "Not enough items.");
         Array2dMut {
             data: slice,
             boundary,
@@ -353,6 +338,10 @@ impl<'t, T> Array2dMut<'t, T> {
 
     pub fn from_slice_pitch(slice: &'t mut [T], boundary: impl IntoBoundary, pitch: usize) -> Self {
         let boundary = boundary.into_boundary();
+        assert!(
+            slice.len() >= boundary.dimension.y as usize * pitch,
+            "Not enough items."
+        );
         assert!(
             pitch >= boundary.pitch(),
             "Pitch must be larger than boundary."

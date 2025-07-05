@@ -1,7 +1,9 @@
 //! Operations on arrays with the same dimension.
 
 use crate::{
-    storage::{Array2dStorage, Array2dStorageMut}, util::*, Array2d, Boundary, GenericArray2d
+    Array2d, Boundary, GenericArray2d,
+    storage::{Array2dStorage, Array2dStorageMut},
+    util::*,
 };
 use mint::Vector2;
 
@@ -71,7 +73,9 @@ impl<T: Array2dStorageMut> GenericArray2dRef for &mut GenericArray2d<T> {
     }
 }
 
-impl<A: Array2dStorage<Item: PartialEq<B::Item>>, B:Array2dStorage> PartialEq<GenericArray2d<B>> for GenericArray2d<A> {
+impl<A: Array2dStorage<Item: PartialEq<B::Item>>, B: Array2dStorage> PartialEq<GenericArray2d<B>>
+    for GenericArray2d<A>
+{
     fn eq(&self, other: &GenericArray2d<B>) -> bool {
         self.boundary == other.boundary && self.rows().zip(other.rows()).all(|(a, b)| a == b)
     }
@@ -81,8 +85,11 @@ impl<T: Array2dStorage<Item: Eq>> Eq for GenericArray2d<T> {}
 
 impl<T: Array2dStorage<Item: Eq>> GenericArray2d<T> {
     /// Returns true if dimension and underlying data are equal, ignores the origin points.
-    pub fn equivalent<U: Array2dStorage>(&self, other: &GenericArray2d<U>) -> bool where T::Item: PartialEq<U::Item> {
-        self.boundary.dimension == other.boundary.dimension 
+    pub fn equivalent<U: Array2dStorage>(&self, other: &GenericArray2d<U>) -> bool
+    where
+        T::Item: PartialEq<U::Item>,
+    {
+        self.boundary.dimension == other.boundary.dimension
             && self.rows().zip(other.rows()).all(|(a, b)| a == b)
     }
 }
@@ -90,9 +97,9 @@ impl<T: Array2dStorage<Item: Eq>> GenericArray2d<T> {
 /// Zipped references of 2d arrays of the same dimension.
 ///
 /// Supports `&array` or `&mut array` only if underlying data is mutable.
-/// 
-/// # Constraints 
-/// 
+///
+/// # Constraints
+///
 /// Dimensions of both arrays must match, origin points are not considered.
 pub struct Zip<A: GenericArray2dRef, B: GenericArray2dRef>(pub A, pub B);
 
@@ -101,14 +108,14 @@ type ItemMut<'t, T> = <<T as GenericArray2dRef>::RowMut<'t> as IntoIterator>::It
 
 impl<A: GenericArray2dRef, B: GenericArray2dRef> Zip<A, B> {
     /// Returns true if size matches.
-    /// 
+    ///
     /// This is required for all operations on this type.
     pub fn is_valid(&self) -> bool {
         self.0.dimension() == self.1.dimension()
     }
 
     /// Returns false and has no effect if the arrays do not have equal dimension.
-    pub fn for_each(&self, mut f: impl FnMut(Item<'_, A>, Item<'_, B>)) -> bool {
+    pub fn for_each<'t>(&'t self, mut f: impl FnMut(Item<'t, A>, Item<'t, B>)) -> bool {
         if self.0.dimension() != self.1.dimension() {
             return false;
         }
@@ -121,7 +128,10 @@ impl<A: GenericArray2dRef, B: GenericArray2dRef> Zip<A, B> {
     }
 
     /// Returns false and has no effect if the arrays do not have equal dimension.
-    pub fn for_each_mut(&mut self, mut f: impl FnMut(ItemMut<'_, A>, ItemMut<'_, B>)) -> bool {
+    pub fn for_each_mut<'t>(
+        &'t mut self,
+        mut f: impl FnMut(ItemMut<'t, A>, ItemMut<'t, B>),
+    ) -> bool {
         if self.0.dimension() != self.1.dimension() {
             return false;
         }
@@ -134,9 +144,9 @@ impl<A: GenericArray2dRef, B: GenericArray2dRef> Zip<A, B> {
     }
 
     /// Returns false and has no effect if the arrays do not have equal dimension.
-    pub fn for_each_indexed<I: From<Vector2<i32>>>(
-        &self,
-        mut f: impl FnMut(I, Item<'_, A>, I, Item<'_, B>),
+    pub fn for_each_indexed<'t, I: From<Vector2<i32>>>(
+        &'t self,
+        mut f: impl FnMut(I, Item<'t, A>, I, Item<'t, B>),
     ) -> bool {
         if self.0.dimension() != self.1.dimension() {
             return false;
@@ -156,9 +166,9 @@ impl<A: GenericArray2dRef, B: GenericArray2dRef> Zip<A, B> {
     }
 
     /// Returns false and has no effect if the arrays do not have equal dimension.
-    pub fn for_each_indexed_mut<I: From<Vector2<i32>>>(
-        &mut self,
-        mut f: impl FnMut(I, ItemMut<'_, A>, I, ItemMut<'_, B>),
+    pub fn for_each_indexed_mut<'t, I: From<Vector2<i32>>>(
+        &'t mut self,
+        mut f: impl FnMut(I, ItemMut<'t, A>, I, ItemMut<'t, B>),
     ) -> bool {
         if self.0.dimension() != self.1.dimension() {
             return false;
@@ -178,12 +188,12 @@ impl<A: GenericArray2dRef, B: GenericArray2dRef> Zip<A, B> {
     }
 
     /// Create a new array by combining the two, inheriting the position of the first array.
-    /// 
+    ///
     /// # Panics
-    /// 
+    ///
     /// If dimension mismatch.
     #[track_caller]
-    pub fn map<U>(&self, mut f: impl FnMut(Item<'_, A>, Item<'_, B>) -> U) -> Array2d<U> {
+    pub fn map<'t, U>(&'t self, mut f: impl FnMut(Item<'t, A>, Item<'t, B>) -> U) -> Array2d<U> {
         if self.0.dimension() != self.1.dimension() {
             panic!("Dimension mismatch!");
         }
@@ -206,26 +216,29 @@ impl<A: GenericArray2dRef, B: GenericArray2dRef> Zip<A, B> {
     }
 
     /// Create a new array by combining the two, inheriting the position of the first array.
-    /// 
+    ///
     /// # Panics
-    /// 
+    ///
     /// If dimension mismatch.
     #[track_caller]
-    pub fn map_mut<U>(&mut self, mut f: impl FnMut(ItemMut<'_, A>, ItemMut<'_, B>) -> U) -> Array2d<U> {
+    pub fn map_mut<'t, U>(
+        &'t mut self,
+        mut f: impl FnMut(ItemMut<'t, A>, ItemMut<'t, B>) -> U,
+    ) -> Array2d<U> {
         if self.0.dimension() != self.1.dimension() {
             panic!("Dimension mismatch!");
         }
         let dimension = self.0.dimension();
+        let boundary = Boundary {
+            min: self.0.min(),
+            dimension,
+        };
         let mut result = Vec::with_capacity((dimension.x * dimension.y) as usize);
         for (row_0, row_1) in self.0.rows_mut().zip(self.1.rows_mut()) {
             for (a, b) in row_0.into_iter().zip(row_1) {
                 result.push(f(a, b))
             }
         }
-        let boundary = Boundary {
-            min: self.0.min(),
-            dimension,
-        };
         Array2d {
             data: result,
             boundary,

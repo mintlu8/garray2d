@@ -8,11 +8,11 @@ use crate::{
 };
 
 /// Make an item usable in `get` and `get_mut`.
-/// 
+///
 /// Implemented on `impl Into<mint::Vector<i32>>`,
 /// or `impl IntoBoundary`
-/// using type inference, see [`IntoBoundary`]. 
-/// 
+/// using type inference, see [`IntoBoundary`].
+///
 /// Any type that implements more than one of these will cause `get` to fail.
 pub trait Array2dIndexing<Marker> {
     type Result<'t, T>
