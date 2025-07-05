@@ -1,0 +1,10 @@
+[package]
+name = "bevy_painting"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+garray2d = {version = "*", path = "../../"}
+bevy = { version = "0.16.1"}
+bevy_math = { version = "0.16.1", features = ["mint"]}
