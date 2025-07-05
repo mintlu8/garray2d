@@ -142,11 +142,7 @@ impl Boundary {
     }
 }
 
-/// Types that can be used as [`Boundary`],
-///
-/// implemented on `Boundary`, `Range<impl Into<Vector2<i32>>` (i.e. `[0, 0]..[4, 5]`),
-/// `RangeInclusive<impl Into<Vector2<i32>>` (i.e. `[0, 0]..=[4, 5]`) and
-/// `(impl RangeBounds<i32>, impl RangeBounds<i32>)` (i.e. `(0..4, 0..=5)`)
+/// Types that can be used as [`Boundary`].
 pub trait IntoBoundary {
     fn into_boundary(self) -> Boundary;
 }
