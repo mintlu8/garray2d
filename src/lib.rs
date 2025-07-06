@@ -74,10 +74,10 @@ impl<T> Default for Array2dMut<'_, T> {
     }
 }
 
-impl<T> Default for Array2d<T> {
+impl<T: Default + Array2dStorageOwned> Default for GenericArray2d<T> {
     fn default() -> Self {
-        Array2d {
-            data: Vec::new(),
+        GenericArray2d {
+            data: Default::default(),
             boundary: Boundary::EMPTY,
             pitch: 0,
         }
@@ -85,34 +85,50 @@ impl<T> Default for Array2d<T> {
 }
 
 impl<T: Array2dStorage> GenericArray2d<T> {
+    /// Returns true if contains no items.
     pub fn is_empty(&self) -> bool {
         self.boundary.is_empty()
     }
 
+    /// Returns the number of items in the array.
     pub fn len(&self) -> usize {
         self.boundary.len()
     }
 
+    /// Returns the width of the array.
     pub fn width(&self) -> usize {
         self.boundary.dimension.x as usize
     }
 
+    /// Returns the height of the array.
     pub fn height(&self) -> usize {
         self.boundary.dimension.y as usize
     }
 
+    /// Returns the numerically smallest coordinate in the array.
     pub fn min_point<U: From<Vector2<i32>>>(&self) -> U {
         self.boundary.min.into()
     }
 
+    /// Returns the numerically largest coordinate in the array.
+    ///
+    /// # Note
+    ///
+    /// Equivalent to `min_point + dimension - [1, 1]`.
     pub fn max_point<U: From<Vector2<i32>>>(&self) -> U {
         self.boundary.max().into()
     }
 
+    /// Returns the dimension of the array.
+    ///
+    /// # Note
+    ///
+    /// Equivalent to `max_point - min_point + [1, 1]`.
     pub fn dimension<U: From<Vector2<u32>>>(&self) -> U {
         self.boundary.dimension.into()
     }
 
+    /// Returns the boundary of the array.
     pub fn boundary(&self) -> Boundary {
         self.boundary
     }
@@ -139,13 +155,11 @@ impl<T: Array2dStorage> GenericArray2d<T> {
 
     /// Iterate through pairs of points and values in the array.
     pub fn iter<U: From<Vector2<i32>>>(&self) -> impl Iterator<Item = (U, &T::Item)> {
-        let slice = self.data.slice();
-        DimensionIter::new(self.boundary.dimension).map(|v| {
-            (
-                add(v, self.boundary.min).into(),
-                &slice[v.y as usize * self.pitch + v.x as usize],
-            )
-        })
+        let min = self.boundary.min;
+        DimensionIter::new(self.boundary.dimension)
+            .map(move |x| add(x, min))
+            .map(|x| U::from(x))
+            .zip(self.values())
     }
 
     /// Returns continuous slices defined by the major axis.
@@ -183,6 +197,9 @@ impl<T: Array2dStorage> GenericArray2d<T> {
 }
 
 impl<T: Array2dStorageMut> GenericArray2d<T> {
+    /// Returns either a point or a slice via [`IntoBoundary`].
+    ///
+    /// Unlike [`slice_mut`](GenericArray2d::slice_mut), this only returns `Some` if all points are contained in the array.
     pub fn get_mut<I: Array2dIndexing<M>, M>(&mut self, point: I) -> I::ResultMut<'_, T::Item> {
         point.index_mut(self)
     }
@@ -197,6 +214,15 @@ impl<T: Array2dStorageMut> GenericArray2d<T> {
         }
     }
 
+    /// Iterate through pairs of points and values in the array.
+    pub fn iter_mut<U: From<Vector2<i32>>>(&mut self) -> impl Iterator<Item = (U, &mut T::Item)> {
+        let min = self.boundary.min;
+        DimensionIter::new(self.boundary.dimension)
+            .map(move |x| add(x, min))
+            .map(|x| U::from(x))
+            .zip(self.values_mut())
+    }
+
     /// Returns continuous slices defined by the major axis.
     pub fn rows_mut(&mut self) -> impl Iterator<Item = &mut [T::Item]> {
         let slice = self.data.slice_mut();
@@ -205,6 +231,22 @@ impl<T: Array2dStorageMut> GenericArray2d<T> {
             .chunks_mut(self.pitch.max(1))
             .map(move |slice| &mut slice[..len])
             .take(self.boundary.dimension.x as usize)
+    }
+
+    /// Returns all values in the array.
+    pub fn values_mut(&mut self) -> impl Iterator<Item = &mut T::Item> {
+        self.rows_mut().flatten()
+    }
+
+    pub fn fill(&mut self, value: T::Item)
+    where
+        T::Item: Clone,
+    {
+        for row in self.rows_mut() {
+            for item in row {
+                *item = value.clone();
+            }
+        }
     }
 
     /// Obtain a truncated subslice.
@@ -268,13 +310,40 @@ impl<T: Array2dStorageOwned> GenericArray2d<T> {
     pub fn underlying_slice(&self) -> &[T::Item] {
         &self.data.slice()[..self.len()]
     }
-}
 
-impl<T: Array2dStorageOwned> GenericArray2d<T>
-where
-    T::Item: Default,
-{
-    pub fn new(boundary: impl IntoBoundary) -> Self {
+    /// Create an `Array2d` filled with a value.
+    pub fn new_filled(boundary: impl IntoBoundary, fill: T::Item) -> Self
+    where
+        T::Item: Clone,
+    {
+        let boundary = boundary.into_boundary();
+        let len = boundary.len();
+        let mut vec = Vec::new();
+        vec.resize(len, fill.clone());
+        Self {
+            data: T::from_vec(vec),
+            boundary,
+            pitch: boundary.pitch(),
+        }
+    }
+
+    #[track_caller]
+    /// Create an `Array2d` from a row major [`Vec`] as the underlying storage.
+    pub fn from_vec(vec: Vec<T::Item>, boundary: impl IntoBoundary) -> Self {
+        let boundary = boundary.into_boundary();
+        assert!(vec.len() >= boundary.len(), "Not enough items.");
+        GenericArray2d {
+            data: T::from_vec(vec),
+            boundary,
+            pitch: boundary.pitch(),
+        }
+    }
+
+    /// Create an `Array2d` with [`Default`] values.
+    pub fn new(boundary: impl IntoBoundary) -> Self
+    where
+        T::Item: Default,
+    {
         let boundary = boundary.into_boundary();
         let len = boundary.len();
         let mut vec = Vec::new();
@@ -286,19 +355,21 @@ where
         }
     }
 
-    #[track_caller]
-    pub fn from_vec(vec: Vec<T::Item>, boundary: impl IntoBoundary) -> Self {
-        let boundary = boundary.into_boundary();
-        assert!(vec.len() >= boundary.len(), "Not enough items.");
-        GenericArray2d {
-            data: T::from_vec(vec),
-            boundary,
-            pitch: boundary.pitch(),
-        }
+    /// Revert the array to the [`Default`] state, with size and origin point `(0, 0)`.
+    pub fn clear(&mut self)
+    where
+        GenericArray2d<T>: Default,
+    {
+        *self = Default::default();
     }
 }
 
 impl<'t, T> Array2dRef<'t, T> {
+    /// Create a [`Array2dRef`] by reinterpreting a row major slice.
+    ///
+    /// # Panics
+    ///
+    /// If the slice has less items than the boundary.
     pub fn from_slice(slice: &'t [T], boundary: impl IntoBoundary) -> Self {
         let boundary = boundary.into_boundary();
         assert!(slice.len() >= boundary.len(), "Not enough items.");
@@ -309,6 +380,12 @@ impl<'t, T> Array2dRef<'t, T> {
         }
     }
 
+    /// Create a [`Array2dRef`] by reinterpreting a row major slice, the offset between each row is `pitch`.
+    ///
+    /// # Panics
+    ///
+    /// * If the slice has less items than the boundary.
+    /// * If the pitch is less the boundary width.
     pub fn from_slice_pitch(slice: &'t [T], boundary: impl IntoBoundary, pitch: usize) -> Self {
         let boundary = boundary.into_boundary();
         assert!(
@@ -328,6 +405,11 @@ impl<'t, T> Array2dRef<'t, T> {
 }
 
 impl<'t, T> Array2dMut<'t, T> {
+    /// Create a [`Array2dMue`] by reinterpreting a row major slice.
+    ///
+    /// # Panics
+    ///
+    /// If the slice has less items than the boundary.
     pub fn from_slice(slice: &'t mut [T], boundary: impl IntoBoundary) -> Self {
         let boundary = boundary.into_boundary();
         assert!(slice.len() >= boundary.len(), "Not enough items.");
@@ -338,6 +420,12 @@ impl<'t, T> Array2dMut<'t, T> {
         }
     }
 
+    /// Create a [`Array2dMut`] by reinterpreting a row major slice, the offset between each row is `pitch`.
+    ///
+    /// # Panics
+    ///
+    /// * If the slice has less items than the boundary.
+    /// * If the pitch is less the boundary width.
     pub fn from_slice_pitch(slice: &'t mut [T], boundary: impl IntoBoundary, pitch: usize) -> Self {
         let boundary = boundary.into_boundary();
         assert!(
