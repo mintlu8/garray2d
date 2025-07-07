@@ -49,18 +49,22 @@ impl Boundary {
         },
     };
 
+    /// Returns true if contains 0 points.
     pub fn is_empty(&self) -> bool {
         self.dimension.x == 0 || self.dimension.y == 0
     }
 
+    /// Returns the length of the underlying vector.
     pub fn len(&self) -> usize {
         (self.dimension.x * self.dimension.y) as usize
     }
 
+    /// Returns the major axis.
     pub(crate) fn pitch(&self) -> usize {
         self.dimension.x as usize
     }
 
+    /// Returns the maximum point.
     pub fn max(&self) -> Vector2<i32> {
         sub(addu(self.min, self.dimension), [1, 1].into())
     }
@@ -82,6 +86,15 @@ impl Boundary {
         }
     }
 
+    /// Returns boundary of a point with dimension `[1, 1]`.
+    pub fn from_point(point: impl Into<Vector2<i32>>) -> Self {
+        Boundary {
+            min: point.into(),
+            dimension: Vector2 { x: 1, y: 1 },
+        }
+    }
+
+    /// Returns boundary of a conventional 2d array starting from `[0, 0]`.
     pub fn from_dimension(dimension: impl Into<Vector2<i32>>) -> Self {
         let dimension = i2u(dimension.into());
         Boundary {
@@ -90,6 +103,7 @@ impl Boundary {
         }
     }
 
+    /// Returns boundary from a minimum and maximum point.
     pub fn min_max(min: impl Into<Vector2<i32>>, max: impl Into<Vector2<i32>>) -> Self {
         let min = min.into();
         let max = max.into();
@@ -105,6 +119,11 @@ impl Boundary {
         }
     }
 
+    /// Returns boundary from a minimum and a non-inclusive maximum point.
+    ///
+    /// # Note
+    ///
+    /// `i32::MAX` is not allowed, use `i32::MAX - 1` instead.
     pub(crate) fn min_max_non_inclusive(
         min: impl Into<Vector2<i32>>,
         max: impl Into<Vector2<i32>>,
@@ -118,12 +137,14 @@ impl Boundary {
         Boundary { min, dimension }
     }
 
+    /// Returns boundary from a minimum point and a dimension.
     pub fn min_dim(min: impl Into<Vector2<i32>>, dimension: impl Into<Vector2<i32>>) -> Self {
         let min = min.into();
         let dimension = i2u(abs(dimension.into()));
         Boundary { min, dimension }
     }
 
+    /// Returns boundary from a center point and half dimension.
     pub fn center_hdim(center: impl Into<Vector2<i32>>, half_dim: impl Into<Vector2<i32>>) -> Self {
         let center = center.into();
         let half_dim = abs(half_dim.into());
@@ -132,6 +153,7 @@ impl Boundary {
         Boundary { min, dimension }
     }
 
+    /// Returns boundary from 2 ranges.
     pub fn xy(x: impl RangeBounds<i32>, y: impl RangeBounds<i32>) -> Self {
         let min_x = match x.start_bound() {
             Bound::Included(v) => *v,
@@ -156,6 +178,7 @@ impl Boundary {
         Boundary::min_max([min_x, min_y], [max_x, max_y])
     }
 
+    /// Contains a point.
     pub fn contains(&self, position: impl Into<Vector2<i32>>) -> bool {
         let position = position.into();
         position.x >= self.min.x

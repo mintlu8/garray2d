@@ -212,6 +212,46 @@ pub fn resize() {
 }
 
 #[test]
+pub fn insert() {
+    let mut a = Array2d::<u32>::default();
+
+    a.insert([4, 5], 2);
+
+    assert_eq!(a.width(), 1);
+    assert_eq!(a.height(), 1);
+    assert_eq!(a.len(), 1);
+    assert_eq!(a.fetch([4, 5]), 2);
+
+    a.insert([5, 7], 4);
+
+    assert_eq!(a.width(), 2);
+    assert_eq!(a.height(), 3);
+    assert_eq!(a.len(), 6);
+    assert_eq!(a.fetch([4, 5]), 2);
+    assert_eq!(a.fetch([5, 7]), 4);
+    assert_eq!(a.fetch([5, 3]), 0);
+
+    a.insert([5, 3], 3);
+
+    assert_eq!(a.width(), 2);
+    assert_eq!(a.height(), 5);
+    assert_eq!(a.len(), 10);
+    assert_eq!(a.fetch([4, 5]), 2);
+    assert_eq!(a.fetch([5, 7]), 4);
+    assert_eq!(a.fetch([5, 3]), 3);
+
+    a.insert([4, 4], 3);
+
+    assert_eq!(a.width(), 2);
+    assert_eq!(a.height(), 5);
+    assert_eq!(a.len(), 10);
+    assert_eq!(a.fetch([4, 5]), 2);
+    assert_eq!(a.fetch([5, 7]), 4);
+    assert_eq!(a.fetch([5, 3]), 3);
+    assert_eq!(a.fetch([4, 4]), 3);
+}
+
+#[test]
 pub fn paint() {
     let mut canvas = Array2d::<i32>::new([-2, -2]..=[2, 2]);
     let brush = Array2d::<i32>::init([-2, -2]..=[2, 2], |v: IVec2| {

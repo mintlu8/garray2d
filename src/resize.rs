@@ -39,6 +39,11 @@ impl<T: Array2dStorageOwned<Item: Default>> GenericArray2d<T> {
     pub fn resize(&mut self, boundary: impl IntoBoundary) {
         let boundary = boundary.into_boundary();
 
+        if self.is_empty() {
+            self.boundary = boundary;
+            self.pitch = boundary.pitch();
+            self.data = T::from_vec((0..boundary.len()).map(|_| Default::default()).collect());
+        }
         if self.boundary == boundary {
             return;
         }
@@ -71,26 +76,20 @@ impl<T: Array2dStorageOwned<Item: Default>> GenericArray2d<T> {
 
     /// Insert a point into an array and potentially expanding the size with [`Default`] values.
     pub fn insert(&mut self, position: impl Into<Vector2<i32>>, value: T::Item) {
-        let position: Vector2<i32> = position.into();
-        if self.contains(position) {
+        let position = position.into();
+        if self.is_empty() {
+            self.boundary = Boundary::from_point(position);
+            self.pitch = 1;
+            self.data = T::from_vec(vec![value]);
+        } else if let Some(v) = self.get_mut(position) {
+            *v = value;
+        } else {
+            let min = vec_min(self.boundary.min, position);
+            let max = vec_max(self.max_point(), position);
+            self.resize(Boundary::min_max(min, max));
             if let Some(v) = self.get_mut(position) {
                 *v = value;
             }
-        } else {
-            let mut min = self.boundary.min;
-            let mut dimension = self.boundary.dimension;
-            let max: Vector2<i32> = self.max_point();
-            if position.x < min.x {
-                min.x = position.x;
-            } else if position.x > max.x {
-                dimension.x += (position.x - max.x) as u32;
-            }
-            if position.y < min.y {
-                min.y = position.y;
-            } else if position.y > max.y {
-                dimension.y += (position.y - max.y) as u32;
-            }
-            self.resize(Boundary { min, dimension });
         }
     }
 
@@ -106,16 +105,18 @@ impl<T: Array2dStorageOwned<Item: Default>> GenericArray2d<T> {
         positions: impl IntoIterator<Item = (U, T::Item)>,
     ) -> bool {
         let mut no_discards = true;
-        let Boundary { min, dimension } = boundary.into_boundary();
-        let max = vec_max(
-            add(self.boundary.min, u2i(self.boundary.dimension)),
-            add(min, u2i(dimension)),
-        );
-        let min = vec_min(self.boundary.min, min);
-        let dimension = i2u(sub(max, min));
-
-        self.resize(Boundary { min, dimension });
-
+        if self.is_empty() {
+            self.resize(boundary);
+        } else {
+            let boundary = boundary.into_boundary();
+            let min = vec_min(self.boundary.min, boundary.min);
+            let max = vec_max(
+                self.boundary.max_non_inclusive(),
+                boundary.max_non_inclusive(),
+            );
+            let dimension = i2u(sub(max, min));
+            self.resize(Boundary { min, dimension });
+        }
         for (position, item) in positions {
             if let Some(v) = self.get_mut(position) {
                 *v = item;
@@ -131,14 +132,17 @@ impl<T: Array2dStorageOwned<Item: Default>> GenericArray2d<T> {
     where
         T::Item: Clone,
     {
-        let min = vec_min(self.boundary.min, array.boundary.min);
-        let max = vec_max(
-            self.boundary.max_non_inclusive(),
-            array.boundary.max_non_inclusive(),
-        );
-        let dimension = i2u(sub(max, min));
-
-        self.resize(Boundary { min, dimension });
+        if self.is_empty() {
+            self.resize(array.boundary);
+        } else {
+            let min = vec_min(self.boundary.min, array.boundary.min);
+            let max = vec_max(
+                self.boundary.max_non_inclusive(),
+                array.boundary.max_non_inclusive(),
+            );
+            let dimension = i2u(sub(max, min));
+            self.resize(Boundary { min, dimension });
+        }
 
         self.paint(array, [0, 0], |source, incoming| *source = incoming.clone());
     }
