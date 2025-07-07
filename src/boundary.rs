@@ -178,13 +178,19 @@ impl Boundary {
         Boundary::min_max([min_x, min_y], [max_x, max_y])
     }
 
-    /// Contains a point.
+    /// Returns `true` if contains a point.
     pub fn contains(&self, position: impl Into<Vector2<i32>>) -> bool {
         let position = position.into();
         position.x >= self.min.x
             && position.y >= self.min.y
             && position.x < self.min.x.wrapping_add(self.dimension.x as i32)
             && position.y < self.min.y.wrapping_add(self.dimension.y as i32)
+    }
+
+    /// Iterate through all points in the boundary.
+    pub fn iter<T: From<Vector2<i32>>>(&self) -> impl Iterator<Item = T> + 'static + use<T> {
+        let min = self.min;
+        DimensionIter::new(self.dimension).map(move |x| add(x, min).into())
     }
 }
 

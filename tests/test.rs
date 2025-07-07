@@ -14,6 +14,16 @@ fn iter_eq<T: PartialEq + Debug>(a: impl IntoIterator<Item = T>, b: impl IntoIte
 }
 
 #[test]
+pub fn boundary() {
+    iter_eq(Boundary::EMPTY.iter::<[i32; 2]>(), []);
+
+    iter_eq(
+        Boundary::min_max([1, 1], [2, 3]).iter::<[i32; 2]>(),
+        [[1, 1], [2, 1], [1, 2], [2, 2], [1, 3], [2, 3]],
+    );
+}
+
+#[test]
 pub fn create() {
     let arr = Array2d::init((-1..2, -1..3), |v: IVec2| v);
     assert_eq!(arr.len(), 12);
