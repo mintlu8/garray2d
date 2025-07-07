@@ -23,7 +23,7 @@ similar to `array::from_fn` or from a `Vec` and a dimension.
 `Array2dRef` and `Array2dMut` can be created either by slicing an existing 2d array
 using `get` or `slice` or by reinterpreting a slice as a 2d array.
 
-To combine multiple arrays, use `Zip` if dimension is the same, `paint` if you
+To combine multiple arrays, use `zip` if dimension is the same, `paint` if you
 do not care about overflows and `merge` if you do.
 
 ## Core Traits

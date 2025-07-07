@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use garray2d::{Array2d, Boundary, Zip};
+use garray2d::{Array2d, Boundary};
 use glam::IVec2;
 
 #[track_caller]
@@ -279,7 +279,7 @@ pub fn zip() {
     let mut a = Array2d::from_vec(vec![9, 4, 7, 3, 6, 1, 2, 8, 5], [0, 0]..=[2, 2]);
     let b = Array2d::from_vec(vec![5, 9, 4, 7, 3, 6, 1, 2, 8], [0, 0]..=[2, 2]);
 
-    let v = Zip(&a, &b).map(|a, b| a > b);
+    let v = a.zip(&b).map(|a, b| a > b);
 
     iter_eq(
         v.rows(),
@@ -290,7 +290,7 @@ pub fn zip() {
         ] as [&[_]; 3],
     );
 
-    Zip(&mut a, &b).for_each_mut(|a, b| *a += *b);
+    a.zip_mut(&b).for_each_mut(|a, b| *a += *b);
 
     iter_eq(
         a.rows(),
