@@ -281,6 +281,20 @@ impl<T: Array2dStorageOwned> GenericArray2d<T> {
     {
         *self = Default::default();
     }
+
+    /// Iterate through owned pairs of points and values in the array.
+    ///
+    /// Equivalent to `into_iter` for `Vec`.
+    pub fn iter_owned<U: From<Vector2<i32>>>(self) -> impl Iterator<Item = (U, T::Item)> {
+        let min = self.boundary.min;
+        IterOwned {
+            iter: self.data.into_owned_iter(),
+            position: Vector2 { x: 0, y: 0 },
+            dimension: self.boundary.dimension,
+            pitch: self.pitch as u32,
+        }
+        .map(move |(i, v)| (add(i, min).into(), v))
+    }
 }
 
 impl<'t, T> Array2dRef<'t, T> {

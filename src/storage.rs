@@ -13,6 +13,7 @@ pub trait Array2dStorageMut: Array2dStorage {
 pub trait Array2dStorageOwned: Array2dStorageMut {
     fn vec_mut(&mut self) -> &mut Vec<Self::Item>;
     fn from_vec(vec: Vec<Self::Item>) -> Self;
+    fn into_owned_iter(self) -> impl Iterator<Item = Self::Item>;
 }
 
 impl<T> Array2dStorage for &[T] {
@@ -58,5 +59,9 @@ impl<T> Array2dStorageOwned for Vec<T> {
 
     fn from_vec(vec: Vec<Self::Item>) -> Self {
         vec
+    }
+
+    fn into_owned_iter(self) -> impl Iterator<Item = Self::Item> {
+        self.into_iter()
     }
 }

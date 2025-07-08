@@ -118,3 +118,33 @@ impl Iterator for DimensionIter {
         Some(u2i(out))
     }
 }
+
+pub(crate) struct IterOwned<T> {
+    pub iter: T,
+    pub position: Vector2<u32>,
+    pub dimension: Vector2<u32>,
+    pub pitch: u32,
+}
+
+impl<T: Iterator> Iterator for IterOwned<T> {
+    type Item = (Vector2<i32>, T::Item);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            let out = self.position;
+            if self.position.y >= self.dimension.y {
+                return None;
+            }
+            self.position.x += 1;
+            if self.position.x >= self.pitch {
+                self.position.x = 0;
+                self.position.y += 1;
+                continue;
+            }
+            if self.position.x >= self.dimension.x {
+                continue;
+            }
+            return Some((u2i(out), self.iter.next()?));
+        }
+    }
+}

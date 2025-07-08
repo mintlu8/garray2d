@@ -1,7 +1,7 @@
 use mint::Vector2;
 
 use crate::Zip;
-use crate::traits::Array2dStorageMut;
+use crate::traits::{Array2dStorageMut, Array2dStorageOwned};
 
 use crate::{Array2d, GenericArray2d, traits::Array2dStorage, zip::GenericArray2dRef};
 
@@ -66,6 +66,48 @@ impl<T: Array2dStorage> GenericArray2d<T> {
 impl<T: Array2dStorage<Item = bool>> GenericArray2d<T> {
     /// For a boolean 2d array, iterate through points with `true` values.
     pub fn iter_points<U: From<Vector2<i32>>>(&self) -> impl Iterator<Item = U> {
-        self.iter::<U>().filter_map(|(pos, is_true)| is_true.then_some(pos))
+        self.iter::<U>()
+            .filter_map(|(pos, is_true)| is_true.then_some(pos))
+    }
+
+    /// For a boolean 2d array, iterate through points with `true` values.
+    pub fn iter_points_owned<U: From<Vector2<i32>>>(self) -> impl Iterator<Item = U>
+    where
+        T: Array2dStorageOwned,
+    {
+        self.iter_owned::<U>()
+            .filter_map(|(pos, is_true)| is_true.then_some(pos))
+    }
+}
+
+impl<T: Array2dStorage<Item = Option<A>>, A> GenericArray2d<T> {
+    /// For a option 2d array, iterate through points with `Some` values.
+    pub fn iter_some<'t, U: From<Vector2<i32>>>(&'t self) -> impl Iterator<Item = (U, &'t A)>
+    where
+        A: 't,
+    {
+        self.iter::<U>()
+            .filter_map(|(pos, value)| value.as_ref().map(|v| (pos, v)))
+    }
+
+    /// For a option 2d array, iterate through points with `Some` values.
+    pub fn iter_some_mut<'t, U: From<Vector2<i32>>>(
+        &'t mut self,
+    ) -> impl Iterator<Item = (U, &'t mut A)>
+    where
+        T: Array2dStorageMut,
+        A: 't,
+    {
+        self.iter_mut::<U>()
+            .filter_map(|(pos, value)| value.as_mut().map(|v| (pos, v)))
+    }
+
+    /// For a boolean 2d array, iterate through points with `Some` values.
+    pub fn iter_some_owned<U: From<Vector2<i32>>>(self) -> impl Iterator<Item = (U, A)>
+    where
+        T: Array2dStorageOwned,
+    {
+        self.iter_owned::<U>()
+            .filter_map(|(pos, value)| value.map(|v| (pos, v)))
     }
 }
