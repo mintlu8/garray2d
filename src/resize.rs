@@ -148,7 +148,7 @@ impl<T: Array2dStorageOwned<Item: Default>> GenericArray2d<T> {
     }
 
     /// Increase dimension both horizontally and vertically.
-    /// 
+    ///
     /// For example expanding `[0, 0]..=[0, 0]` by `[2, 1]`
     /// results in `[-2, -1]..=[2, 1]`.
     pub fn expand(&mut self, by: impl Into<Vector2<i32>>) {
