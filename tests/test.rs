@@ -152,6 +152,41 @@ pub fn getters() {
 }
 
 #[test]
+pub fn owned_iter() {
+    let array = Array2d::<f32>::new(Boundary::EMPTY);
+    iter_eq(array.iter_owned::<IVec2>(), []);
+
+    let array =
+        Array2d::<i32>::from_vec(vec![1, 2, 3, 4, 5, 6], Boundary::min_dim([2, -4], [2, 3]));
+
+    iter_eq(
+        array.iter_owned::<IVec2>(),
+        [
+            (IVec2::new(2, -4), 1),
+            (IVec2::new(3, -4), 2),
+            (IVec2::new(2, -3), 3),
+            (IVec2::new(3, -3), 4),
+            (IVec2::new(2, -2), 5),
+            (IVec2::new(3, -2), 6),
+        ],
+    );
+
+    let array = Array2d::<i32>::from_vec(vec![1, 2, 3, 4, 5, 6], Boundary::min_dim([1, 1], [1, 6]));
+
+    iter_eq(
+        array.iter_owned::<IVec2>(),
+        [
+            (IVec2::new(1, 1), 1),
+            (IVec2::new(1, 2), 2),
+            (IVec2::new(1, 3), 3),
+            (IVec2::new(1, 4), 4),
+            (IVec2::new(1, 5), 5),
+            (IVec2::new(1, 6), 6),
+        ],
+    );
+}
+
+#[test]
 pub fn resize() {
     let mut arr = Array2d::init((0..=0, 0..5), |v: IVec2| v.y);
     arr.resize((-1..=2, 0..6));

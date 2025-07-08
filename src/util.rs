@@ -130,21 +130,18 @@ impl<T: Iterator> Iterator for IterOwned<T> {
     type Item = (Vector2<i32>, T::Item);
 
     fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            let out = self.position;
-            if self.position.y >= self.dimension.y {
-                return None;
-            }
-            self.position.x += 1;
-            if self.position.x >= self.pitch {
-                self.position.x = 0;
-                self.position.y += 1;
-                continue;
-            }
-            if self.position.x >= self.dimension.x {
-                continue;
-            }
-            return Some((u2i(out), self.iter.next()?));
+        if self.position.y >= self.dimension.y {
+            return None;
         }
+        let out = (u2i(self.position), self.iter.next()?);
+        self.position.x += 1;
+        if self.position.x >= self.dimension.x {
+            self.position.x = 0;
+            self.position.y += 1;
+            for _ in self.dimension.x..self.pitch {
+                let _ = self.iter.next();
+            }
+        }
+        Some(out)
     }
 }
