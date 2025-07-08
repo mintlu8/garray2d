@@ -1,3 +1,5 @@
+use mint::Vector2;
+
 use crate::Zip;
 use crate::traits::Array2dStorageMut;
 
@@ -58,5 +60,12 @@ impl<T: Array2dStorage> GenericArray2d<T> {
         T: Array2dStorageMut,
     {
         Zip(self, rhs)
+    }
+}
+
+impl<T: Array2dStorage<Item = bool>> GenericArray2d<T> {
+    /// For a boolean 2d array, iterate through points with `true` values.
+    pub fn iter_points<U: From<Vector2<i32>>>(&self) -> impl Iterator<Item = U> {
+        self.iter::<U>().filter_map(|(pos, is_true)| is_true.then_some(pos))
     }
 }
