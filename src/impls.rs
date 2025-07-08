@@ -124,7 +124,7 @@ impl<T: Array2dStorageMut> GenericArray2d<T> {
     }
 
     /// Try set a position to a value, returns `true`.
-    pub fn set<I, M>(&mut self, point: impl Into<Vector2<i32>>, value: T::Item) -> bool {
+    pub fn set(&mut self, point: impl Into<Vector2<i32>>, value: T::Item) -> bool {
         if let Some(v) = point.index_mut(self) {
             *v = value;
             true
