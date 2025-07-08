@@ -178,6 +178,38 @@ impl Boundary {
         Boundary::min_max([min_x, min_y], [max_x, max_y])
     }
 
+    /// Move the boundary.
+    pub fn displace(&mut self, by: impl Into<Vector2<i32>>) {
+        self.min = add(self.min, by.into())
+    }
+
+    /// Move the boundary.
+    pub fn displace_by(&self, by: impl Into<Vector2<i32>>) -> Boundary {
+        let mut result = *self;
+        result.displace(by);
+        result
+    }
+
+    /// Increase dimension both horizontally and vertically.
+    /// 
+    /// For example expanding `[0, 0]..=[0, 0]` by `[2, 1]`
+    /// results in `[-2, -1]..=[2, 1]`.
+    pub fn expand(&mut self, by: impl Into<Vector2<i32>>) {
+        let by = by.into();
+        self.min = sub(self.min, by);
+        self.dimension = i2u(add(u2i(self.dimension), by));
+    }
+
+    /// Increase dimension both horizontally and vertically.
+    /// 
+    /// For example expanding `[0, 0]..=[0, 0]` by `[2, 1]`
+    /// results in `[-2, -1]..=[2, 1]`.
+    pub fn expand_by(&self, by: impl Into<Vector2<i32>>) -> Boundary {
+        let mut result = *self;
+        result.expand(by);
+        result
+    }
+
     /// Returns `true` if contains a point.
     pub fn contains(&self, position: impl Into<Vector2<i32>>) -> bool {
         let position = position.into();

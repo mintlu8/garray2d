@@ -146,4 +146,13 @@ impl<T: Array2dStorageOwned<Item: Default>> GenericArray2d<T> {
 
         self.paint(array, [0, 0], |source, incoming| *source = incoming.clone());
     }
+
+    /// Increase dimension both horizontally and vertically.
+    /// 
+    /// For example expanding `[0, 0]..=[0, 0]` by `[2, 1]`
+    /// results in `[-2, -1]..=[2, 1]`.
+    pub fn expand(&mut self, by: impl Into<Vector2<i32>>) {
+        let target = self.boundary.expand_by(by);
+        self.resize(target);
+    }
 }
