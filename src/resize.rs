@@ -42,7 +42,11 @@ impl<T: Array2dStorageOwned<Item: Default>> GenericArray2d<T> {
         if self.is_empty() {
             self.boundary = boundary;
             self.pitch = boundary.pitch();
-            self.data = T::from_vec((0..boundary.len()).map(|_| Default::default()).collect());
+            self.data.vec_mut().clear();
+            self.data
+                .vec_mut()
+                .extend((0..boundary.len()).map(|_| Default::default()));
+            return;
         }
         if self.boundary == boundary && self.pitch == boundary.pitch() {
             return;
@@ -61,7 +65,7 @@ impl<T: Array2dStorageOwned<Item: Default>> GenericArray2d<T> {
 
         // Downsizing is ordered to avoid use after move,
         // then we can clear unused items.
-        if intersection != self.boundary || self.pitch != boundary.pitch() {
+        if intersection != self.boundary || intersection.pitch() != self.pitch {
             self.downsize(intersection);
         }
 
@@ -93,18 +97,8 @@ impl<T: Array2dStorageOwned<Item: Default>> GenericArray2d<T> {
         }
     }
 
-    /// Extend the array to cover a boundary, then insert points into the array.
-    /// Points outside of the new boundary will be discarded.
-    ///
-    /// # Returns
-    ///
-    /// `true` if no points are discarded.
-    pub fn extend<U: Into<Vector2<i32>>>(
-        &mut self,
-        boundary: impl IntoBoundary,
-        positions: impl IntoIterator<Item = (U, T::Item)>,
-    ) -> bool {
-        let mut no_discards = true;
+    /// Expand the array to include a boundary.
+    pub fn resize_containing(&mut self, boundary: Boundary) {
         if self.is_empty() {
             self.resize(boundary);
         } else {
@@ -117,14 +111,58 @@ impl<T: Array2dStorageOwned<Item: Default>> GenericArray2d<T> {
             let dimension = i2u(sub(max, min));
             self.resize(Boundary { min, dimension });
         }
+    }
+
+    /// Insert points into the array,
+    /// points outside of the boundary will be discarded.
+    ///
+    /// # Returns
+    ///
+    /// Number of points discarded.
+    pub fn try_extend<U: Into<Vector2<i32>>>(
+        &mut self,
+        positions: impl IntoIterator<Item = (U, T::Item)>,
+    ) -> usize {
+        let mut discards = 0;
         for (position, item) in positions {
             if let Some(v) = self.get_mut(position) {
                 *v = item;
             } else {
-                no_discards = false
+                discards += 1;
             }
         }
-        no_discards
+        discards
+    }
+
+    /// Measure the boundary of a set of points then extend them into the array,
+    /// requires a [`Clone`] iterator to calculate the boundary on the first pass.
+    ///
+    /// For standard rust types like `&[T]` or `Vec<T>`, use `slice.iter().copied()`.
+    pub fn extend<U: Into<Vector2<i32>>>(
+        &mut self,
+        positions: impl IntoIterator<Item = (U, T::Item)> + Clone,
+    ) {
+        let mut min = Vector2 {
+            x: i32::MAX - 1,
+            y: i32::MAX - 1,
+        };
+        let mut max = Vector2 {
+            x: i32::MIN,
+            y: i32::MIN,
+        };
+        for (point, _) in positions.clone() {
+            let point: Vector2<i32> = point.into();
+            min = vec_min(min, point);
+            max = vec_max(max, point);
+        }
+        let boundary = if max.x < min.x || max.y < min.y {
+            Boundary::EMPTY
+        } else {
+            Boundary::min_max(min, max)
+        };
+
+        self.resize_containing(boundary);
+        self.try_extend(positions);
     }
 
     /// Extend the array to cover both array's boundaries and copy the other array into this array.

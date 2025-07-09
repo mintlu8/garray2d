@@ -382,3 +382,36 @@ pub fn zip() {
         [&[14, 13, 11], &[10, 9, 7], &[3, 10, 13]] as [&[_]; 3],
     );
 }
+
+#[test]
+pub fn owned_pitched() {
+    let mut arr = Array2d::from_vec_pitch(vec![1, 2, 3, 4, 5, 6], [0, 0]..[2, 2], 3);
+
+    iter_eq(arr.rows(), [&[1, 2], &[4, 5]] as [&[_]; 2]);
+
+    assert_eq!(arr.pitch(), 3);
+    assert_eq!(arr.underlying_slice().len(), 6);
+
+    arr.resize([0, 0]..[2, 2]);
+
+    iter_eq(arr.rows(), [&[1, 2], &[4, 5]] as [&[_]; 2]);
+
+    assert_eq!(arr.pitch(), 2);
+    assert_eq!(arr.underlying_slice().len(), 6);
+
+    let mut arr = Array2d::from_vec_pitch(vec![1, 2, 3, 4, 5, 6], [0, 0]..[2, 2], 3);
+    arr.resize([0, 0]..[3, 2]);
+
+    iter_eq(arr.rows(), [&[1, 2, 0], &[4, 5, 0]] as [&[_]; 2]);
+
+    assert_eq!(arr.pitch(), 3);
+    assert_eq!(arr.underlying_slice().len(), 6);
+
+    let mut arr = Array2d::from_vec_pitch(vec![1, 2, 3, 4, 5, 6], [0, 0]..[2, 2], 3);
+    arr.resize([-1, 0]..[3, 2]);
+
+    iter_eq(arr.rows(), [&[0, 1, 2, 0], &[0, 4, 5, 0]] as [&[_]; 2]);
+
+    assert_eq!(arr.pitch(), 4);
+    assert_eq!(arr.underlying_slice().len(), 8);
+}

@@ -25,6 +25,11 @@ impl<T: Array2dStorage> GenericArray2d<T> {
         self.boundary.dimension.y as usize
     }
 
+    /// Returns the pitch of the array.
+    pub fn pitch(&self) -> usize {
+        self.pitch
+    }
+
     /// Returns the numerically smallest coordinate in the array.
     pub fn min_point<U: From<Vector2<i32>>>(&self) -> U {
         self.boundary.min.into()
@@ -226,9 +231,9 @@ impl<T: Array2dStorageOwned> GenericArray2d<T> {
         }
     }
 
-    /// Returns the underlying buffer as a slice.
+    /// Returns the underlying buffer as a slice, may include padding items in `pitch`.
     pub fn underlying_slice(&self) -> &[T::Item] {
-        &self.data.slice()[..self.len()]
+        self.data.slice()
     }
 
     /// Create an `Array2d` filled with a value.
