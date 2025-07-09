@@ -142,25 +142,7 @@ impl<T: Array2dStorageOwned<Item: Default>> GenericArray2d<T> {
         &mut self,
         positions: impl IntoIterator<Item = (U, T::Item)> + Clone,
     ) {
-        let mut min = Vector2 {
-            x: i32::MAX - 1,
-            y: i32::MAX - 1,
-        };
-        let mut max = Vector2 {
-            x: i32::MIN,
-            y: i32::MIN,
-        };
-        for (point, _) in positions.clone() {
-            let point: Vector2<i32> = point.into();
-            min = vec_min(min, point);
-            max = vec_max(max, point);
-        }
-        let boundary = if max.x < min.x || max.y < min.y {
-            Boundary::EMPTY
-        } else {
-            Boundary::min_max(min, max)
-        };
-
+        let boundary = Boundary::from_iter(positions.clone().into_iter().map(|(x, _)| x));
         self.resize_containing(boundary);
         self.try_extend(positions);
     }

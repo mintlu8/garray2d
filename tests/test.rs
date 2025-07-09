@@ -353,10 +353,27 @@ pub fn expand() {
 
     a.merge(&b);
 
+    assert_eq!(a.width(), 4);
+    assert_eq!(a.height(), 4);
+    assert_eq!(a.pitch(), 4);
+
     iter_eq(
         a.rows(),
         [&[0, 0, 1, 2], &[0, 0, 3, 4], &[1, 2, 0, 0], &[3, 4, 0, 0]] as [&[_]; 4],
-    )
+    );
+
+    let mut a = Array2d::from_vec(vec![1, 2, 3, 4], [2, 0]..=[3, 1]);
+
+    a.extend([([0, 2], 1), ([1, 2], 2), ([0, 3], 3), ([1, 3], 4)]);
+
+    assert_eq!(a.width(), 4);
+    assert_eq!(a.height(), 4);
+    assert_eq!(a.pitch(), 4);
+
+    iter_eq(
+        a.rows(),
+        [&[0, 0, 1, 2], &[0, 0, 3, 4], &[1, 2, 0, 0], &[3, 4, 0, 0]] as [&[_]; 4],
+    );
 }
 
 #[test]

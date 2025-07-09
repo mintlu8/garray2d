@@ -32,6 +32,31 @@ impl Default for Boundary {
     }
 }
 
+impl<T: Into<Vector2<i32>>> FromIterator<T> for Boundary {
+    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
+        let mut min = Vector2 {
+            x: i32::MAX - 1,
+            y: i32::MAX - 1,
+        };
+        let mut max = Vector2 {
+            x: i32::MIN,
+            y: i32::MIN,
+        };
+        let mut encountered = false;
+        for point in iter {
+            encountered = true;
+            let point: Vector2<i32> = point.into();
+            min = vec_min(min, point);
+            max = vec_max(max, point);
+        }
+        if encountered {
+            Boundary::min_max(min, max)
+        } else {
+            Boundary::EMPTY
+        }
+    }
+}
+
 impl Boundary {
     pub const EMPTY: Self = Self {
         min: Vector2 { x: 0, y: 0 },
