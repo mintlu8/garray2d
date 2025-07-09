@@ -44,7 +44,7 @@ impl<T: Array2dStorageOwned<Item: Default>> GenericArray2d<T> {
             self.pitch = boundary.pitch();
             self.data = T::from_vec((0..boundary.len()).map(|_| Default::default()).collect());
         }
-        if self.boundary == boundary {
+        if self.boundary == boundary && self.pitch == boundary.pitch() {
             return;
         }
         let size = boundary.len();
@@ -61,7 +61,7 @@ impl<T: Array2dStorageOwned<Item: Default>> GenericArray2d<T> {
 
         // Downsizing is ordered to avoid use after move,
         // then we can clear unused items.
-        if intersection != self.boundary {
+        if intersection != self.boundary || self.pitch != boundary.pitch() {
             self.downsize(intersection);
         }
 

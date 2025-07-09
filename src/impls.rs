@@ -3,6 +3,7 @@ use crate::storage::{Array2dStorage, Array2dStorageMut, Array2dStorageOwned};
 use crate::util::*;
 use crate::{Array2dMut, Array2dRef, Boundary, GenericArray2d, IntoBoundary};
 use mint::Vector2;
+
 impl<T: Array2dStorage> GenericArray2d<T> {
     /// Returns true if contains no items.
     pub fn is_empty(&self) -> bool {
@@ -258,6 +259,25 @@ impl<T: Array2dStorageOwned> GenericArray2d<T> {
         }
     }
 
+    #[track_caller]
+    /// Create an `Array2d` from a row major [`Vec`] as the underlying storage and a pitch value.
+    pub fn from_vec_pitch(vec: Vec<T::Item>, boundary: impl IntoBoundary, pitch: usize) -> Self {
+        let boundary = boundary.into_boundary();
+        assert!(
+            vec.len() >= boundary.dimension.y as usize * pitch,
+            "Not enough items."
+        );
+        assert!(
+            pitch >= boundary.pitch(),
+            "Pitch must be larger than boundary."
+        );
+        GenericArray2d {
+            data: T::from_vec(vec),
+            boundary,
+            pitch,
+        }
+    }
+
     /// Create an `Array2d` with [`Default`] values.
     pub fn new(boundary: impl IntoBoundary) -> Self
     where
@@ -274,12 +294,21 @@ impl<T: Array2dStorageOwned> GenericArray2d<T> {
         }
     }
 
-    /// Revert the array to the [`Default`] state, with size and origin point `(0, 0)`.
-    pub fn clear(&mut self)
-    where
-        GenericArray2d<T>: Default,
-    {
-        *self = Default::default();
+    /// Clear items in the array.
+    pub fn clear(&mut self) {
+        self.boundary = Boundary::EMPTY;
+        self.data.vec_mut().clear();
+        self.pitch = 0;
+    }
+
+    /// Returns the array as a [`Array2dRef`].
+    pub fn as_slice(&self) -> Array2dRef<T::Item> {
+        self.slice(..)
+    }
+
+    /// Returns the array as a [`Array2dMut`].
+    pub fn as_slice_mut(&mut self) -> Array2dMut<T::Item> {
+        self.slice_mut(..)
     }
 
     /// Iterate through owned pairs of points and values in the array.
