@@ -105,7 +105,7 @@ impl<T: Array2dStorage> GenericArray2d<T> {
     /// Obtain a truncated subslice.
     ///
     /// Unlike `get`, returns a truncated result if out of bounds.
-    pub fn slice(&self, boundary: impl IntoBoundary) -> Array2dRef<T::Item> {
+    pub fn slice(&self, boundary: impl IntoBoundary) -> Array2dRef<'_, T::Item> {
         self.slice_internal(boundary.into_boundary()).1
     }
 
@@ -177,7 +177,7 @@ impl<T: Array2dStorageMut> GenericArray2d<T> {
     /// Obtain a truncated subslice.
     ///
     /// Unlike `get`, returns a truncated result if out of bounds.
-    pub fn slice_mut(&mut self, boundary: impl IntoBoundary) -> Array2dMut<T::Item> {
+    pub fn slice_mut(&mut self, boundary: impl IntoBoundary) -> Array2dMut<'_, T::Item> {
         self.slice_mut_internal(boundary.into_boundary()).1
     }
 
@@ -307,12 +307,12 @@ impl<T: Array2dStorageOwned> GenericArray2d<T> {
     }
 
     /// Returns the array as a [`Array2dRef`].
-    pub fn as_slice(&self) -> Array2dRef<T::Item> {
+    pub fn as_slice(&self) -> Array2dRef<'_, T::Item> {
         self.slice(..)
     }
 
     /// Returns the array as a [`Array2dMut`].
-    pub fn as_slice_mut(&mut self) -> Array2dMut<T::Item> {
+    pub fn as_slice_mut(&mut self) -> Array2dMut<'_, T::Item> {
         self.slice_mut(..)
     }
 

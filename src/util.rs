@@ -2,8 +2,11 @@ use std::mem;
 
 use mint::Vector2;
 
+pub(crate) const ZERO: Vector2<i32> = Vector2 { x: 0, y: 0 };
+pub(crate) const ONE: Vector2<i32> = Vector2 { x: 1, y: 1 };
+
 #[track_caller]
-pub(crate) fn add(left: Vector2<i32>, right: Vector2<i32>) -> Vector2<i32> {
+pub(crate) const fn add(left: Vector2<i32>, right: Vector2<i32>) -> Vector2<i32> {
     Vector2 {
         x: left.x + right.x,
         y: left.y + right.y,
@@ -11,7 +14,7 @@ pub(crate) fn add(left: Vector2<i32>, right: Vector2<i32>) -> Vector2<i32> {
 }
 
 #[track_caller]
-pub(crate) fn addu(left: Vector2<i32>, right: Vector2<u32>) -> Vector2<i32> {
+pub(crate) const fn addu(left: Vector2<i32>, right: Vector2<u32>) -> Vector2<i32> {
     Vector2 {
         x: left.x.wrapping_add(right.x as i32),
         y: left.y.wrapping_add(right.y as i32),
@@ -19,7 +22,7 @@ pub(crate) fn addu(left: Vector2<i32>, right: Vector2<u32>) -> Vector2<i32> {
 }
 
 #[track_caller]
-pub(crate) fn sub(left: Vector2<i32>, right: Vector2<i32>) -> Vector2<i32> {
+pub(crate) const fn sub(left: Vector2<i32>, right: Vector2<i32>) -> Vector2<i32> {
     Vector2 {
         x: left.x - right.x,
         y: left.y - right.y,
@@ -43,7 +46,7 @@ pub(crate) fn vec_max(left: Vector2<i32>, right: Vector2<i32>) -> Vector2<i32> {
 }
 
 #[track_caller]
-pub(crate) fn u2i(v: Vector2<u32>) -> Vector2<i32> {
+pub(crate) const fn u2i(v: Vector2<u32>) -> Vector2<i32> {
     Vector2 {
         x: v.x as i32,
         y: v.y as i32,
@@ -51,15 +54,15 @@ pub(crate) fn u2i(v: Vector2<u32>) -> Vector2<i32> {
 }
 
 #[track_caller]
-pub(crate) fn i2u(v: Vector2<i32>) -> Vector2<u32> {
+pub(crate) const fn i2u(v: Vector2<i32>) -> Vector2<u32> {
     Vector2 {
-        x: v.x.max(0) as u32,
-        y: v.y.max(0) as u32,
+        x: if v.x > 0 { v.x as u32 } else { 0 },
+        y: if v.y > 0 { v.y as u32 } else { 0 },
     }
 }
 
 #[track_caller]
-pub(crate) fn abs(v: Vector2<i32>) -> Vector2<i32> {
+pub(crate) const fn abs(v: Vector2<i32>) -> Vector2<i32> {
     Vector2 {
         x: v.x.abs(),
         y: v.y.abs(),
@@ -68,7 +71,7 @@ pub(crate) fn abs(v: Vector2<i32>) -> Vector2<i32> {
 
 #[inline]
 #[track_caller]
-pub fn offset_of(pos: Vector2<i32>, origin: Vector2<i32>, pitch: usize) -> usize {
+pub const fn offset_of(pos: Vector2<i32>, origin: Vector2<i32>, pitch: usize) -> usize {
     let pos = sub(pos, origin);
     pos.y as usize * pitch + pos.x as usize
 }

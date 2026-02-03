@@ -222,7 +222,7 @@ impl Boundary {
     pub fn expand(&mut self, by: impl Into<Vector2<i32>>) {
         let by = by.into();
         self.min = sub(self.min, by);
-        self.dimension = i2u(add(u2i(self.dimension), by));
+        self.dimension = i2u(add(add(u2i(self.dimension), by), by));
     }
 
     /// Increase dimension both horizontally and vertically.

@@ -175,4 +175,80 @@ impl<T: Array2dStorageOwned<Item: Default>> GenericArray2d<T> {
         let target = self.boundary.expand_by(by);
         self.resize(target);
     }
+
+    /// Remove outer rows and columns with [`Default`] values.
+    pub fn crop(&mut self)
+    where
+        T::Item: PartialEq,
+    {
+        let area = self.cropped_boundary();
+        self.resize(area);
+    }
+
+    /// Remove outer rows and columns with [`Default`] values, then expand.
+    pub fn crop_expand(&mut self, expand: impl Into<Vector2<i32>>)
+    where
+        T::Item: PartialEq,
+    {
+        let area = self.cropped_boundary();
+        let result_area = area.expand_by(expand);
+        self.resize(result_area);
+    }
+
+    /// Remove outer rows and columns considered empty.
+    pub fn crop_with(&mut self, is_empty: impl FnMut(&T::Item) -> bool) {
+        let area = self.cropped_boundary_with(is_empty);
+        self.resize(area);
+    }
+
+    /// Remove outer rows and columns considered empty, then expand.
+    pub fn crop_expand_with(
+        &mut self,
+        expand: impl Into<Vector2<i32>>,
+        is_empty: impl FnMut(&T::Item) -> bool,
+    ) {
+        let area = self.cropped_boundary_with(is_empty);
+        let result_area = area.expand_by(expand);
+        self.resize(result_area);
+    }
+}
+
+impl<T: Array2dStorage<Item: Default>> GenericArray2d<T> {
+    /// Boundary with outer rows and columns with [`Default`] values removed.
+    pub fn cropped_boundary(&self) -> Boundary
+    where
+        T::Item: PartialEq,
+    {
+        let default = T::Item::default();
+        self.cropped_boundary_with(|item| item == &default)
+    }
+
+    /// Boundary with outer rows and columns considered empty removed.
+    pub fn cropped_boundary_with(&self, mut is_empty: impl FnMut(&T::Item) -> bool) -> Boundary {
+        let mut min = Vector2 {
+            x: i32::MAX,
+            y: i32::MAX,
+        };
+        let mut max = Vector2 {
+            x: i32::MIN,
+            y: i32::MIN,
+        };
+        for (idx, value) in self.iter::<Vector2<i32>>() {
+            if !is_empty(value) {
+                min = vec_min(idx, min);
+                max = vec_max(idx, max);
+            }
+        }
+        if min.x <= max.x {
+            Boundary {
+                min,
+                dimension: i2u(add(sub(max, min), ONE)),
+            }
+        } else {
+            Boundary {
+                min: ZERO,
+                dimension: i2u(ZERO),
+            }
+        }
+    }
 }

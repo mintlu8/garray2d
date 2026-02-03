@@ -202,6 +202,11 @@ pub fn resize() {
         ] as [&[_]; 6],
     );
 
+    arr.crop();
+    iter_eq(arr.rows(), [&[1], &[2], &[3], &[4]] as [&[_]; 4]);
+    assert_eq!(arr.boundary().min.x, 0);
+    assert_eq!(arr.boundary().min.y, 1);
+
     let mut arr = Array2d::init((0..5, 0..=0), |v: IVec2| v.x);
     arr.resize((-1..6, -1..=2));
     iter_eq(
@@ -221,6 +226,19 @@ pub fn resize() {
         arr.rows(),
         [&[0, 0, 0], &[0, 0, 0], &[1, 2, 3], &[1, 2, 3]] as [&[_]; 4],
     );
+
+    arr.crop_expand([2, 1]);
+    iter_eq(
+        arr.rows(),
+        [
+            &[0, 0, 0, 0, 0, 0, 0],
+            &[0, 0, 1, 2, 3, 0, 0],
+            &[0, 0, 1, 2, 3, 0, 0],
+            &[0, 0, 0, 0, 0, 0, 0],
+        ] as [&[_]; 4],
+    );
+    assert_eq!(arr.boundary().min.x, -1);
+    assert_eq!(arr.boundary().min.y, -1);
 
     let mut arr = Array2d::init((0..=1, 0..=5), |v: IVec2| v.y);
     arr.resize((-2..=1, 1..=3));

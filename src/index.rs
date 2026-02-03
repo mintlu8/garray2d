@@ -112,7 +112,7 @@ impl<U: IntoBoundary> Array2dIndexing<BoundaryMarker> for U {
 }
 
 impl<T: Array2dStorage> GenericArray2d<T> {
-    pub(crate) fn slice_internal(&self, input: Boundary) -> (bool, Array2dRef<T::Item>) {
+    pub(crate) fn slice_internal(&self, input: Boundary) -> (bool, Array2dRef<'_, T::Item>) {
         if let Some(intersection) = self.boundary.intersection(input) {
             let min = sub(intersection.min, self.boundary.min);
             let offset = (min.y * self.pitch as i32 + min.x) as usize;
@@ -132,7 +132,10 @@ impl<T: Array2dStorage> GenericArray2d<T> {
 }
 
 impl<T: Array2dStorageMut> GenericArray2d<T> {
-    pub(crate) fn slice_mut_internal(&mut self, input: Boundary) -> (bool, Array2dMut<T::Item>) {
+    pub(crate) fn slice_mut_internal(
+        &mut self,
+        input: Boundary,
+    ) -> (bool, Array2dMut<'_, T::Item>) {
         if let Some(intersection) = self.boundary.intersection(input) {
             let min = sub(intersection.min, self.boundary.min);
             let offset = (min.y * self.pitch as i32 + min.x) as usize;
