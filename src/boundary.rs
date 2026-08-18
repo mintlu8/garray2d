@@ -235,6 +235,29 @@ impl Boundary {
         result
     }
 
+    /// Increase dimension both horizontally and vertically.
+    ///
+    /// For example expanding `[0, 0]..=[0, 0]` by `[2, 1]`
+    /// results in `[-2, -1]..=[2, 1]`.
+    ///
+    /// If resulting dimension is less than or equal to 0,
+    pub(crate) fn trim_border(&self) -> Boundary {
+        if self.dimension.x <= 2 || self.dimension.y <= 2 {
+            Boundary::default()
+        } else {
+            Boundary {
+                min: Vector2 {
+                    x: self.min.x + 1,
+                    y: self.min.y + 1,
+                },
+                dimension: Vector2 {
+                    x: self.dimension.x - 2,
+                    y: self.dimension.y - 2,
+                },
+            }
+        }
+    }
+
     /// Returns `true` if contains a point.
     pub fn contains(&self, position: impl Into<Vector2<i32>>) -> bool {
         let position = position.into();
@@ -248,6 +271,12 @@ impl Boundary {
     pub fn iter<T: From<Vector2<i32>>>(&self) -> impl Iterator<Item = T> + 'static + use<T> {
         let min = self.min;
         DimensionIter::new(self.dimension).map(move |x| add(x, min).into())
+    }
+
+    /// Iterate through all points on the border.
+    pub fn iter_border<T: From<Vector2<i32>>>(&self) -> impl Iterator<Item = T> + 'static + use<T> {
+        let min = self.min;
+        BorderIter::new(self.dimension).map(move |x| add(x, min).into())
     }
 }
 

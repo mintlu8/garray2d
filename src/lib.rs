@@ -1,7 +1,6 @@
 #![doc = include_str!("../README.md")]
 mod boundary;
 mod impls;
-mod index;
 mod map;
 mod resize;
 mod storage;
@@ -15,11 +14,11 @@ pub use boundary::Boundary;
 use boundary::IntoBoundary;
 use storage::{Array2dStorage, Array2dStorageOwned};
 pub use zip::Zip;
+pub use map::Truthy;
 
 pub mod traits {
     //! Lesser used traits.
     pub use crate::boundary::IntoBoundary;
-    pub use crate::index::Array2dIndexing;
     pub use crate::storage::{Array2dStorage, Array2dStorageMut, Array2dStorageOwned};
     pub use crate::zip::GenericArray2dRef;
 }

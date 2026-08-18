@@ -2,6 +2,11 @@ use std::mem;
 
 use mint::Vector2;
 
+use crate::{
+    Array2dMut, Array2dRef, Boundary, GenericArray2d,
+    traits::{Array2dStorage, Array2dStorageMut},
+};
+
 pub(crate) const ZERO: Vector2<i32> = Vector2 { x: 0, y: 0 };
 pub(crate) const ONE: Vector2<i32> = Vector2 { x: 1, y: 1 };
 
@@ -122,6 +127,99 @@ impl Iterator for DimensionIter {
     }
 }
 
+pub struct BorderIter {
+    edge_no: u32,
+    position: u32,
+    // dimension - 1
+    d_1: Vector2<u32>,
+}
+
+impl BorderIter {
+    pub fn new(dimension: Vector2<u32>) -> Self {
+        if dimension.x == 0 || dimension.y == 0 {
+            BorderIter {
+                edge_no: 5,
+                position: 0,
+                d_1: Vector2 { x: 0, y: 0 },
+            }
+        } else if dimension.y == 1 {
+            BorderIter {
+                edge_no: 0,
+                position: 0,
+                d_1: Vector2 {
+                    x: dimension.x,
+                    y: 0,
+                },
+            }
+        } else if dimension.x == 1 {
+            BorderIter {
+                edge_no: 1,
+                position: 0,
+                d_1: Vector2 {
+                    x: 0,
+                    y: dimension.y,
+                },
+            }
+        } else {
+            BorderIter {
+                edge_no: 0,
+                position: 0,
+                d_1: Vector2 {
+                    x: dimension.x - 1,
+                    y: dimension.y - 1,
+                },
+            }
+        }
+    }
+}
+
+impl Iterator for BorderIter {
+    type Item = Vector2<i32>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let (result, limit) = match self.edge_no {
+            0 => (
+                Vector2 {
+                    x: self.position,
+                    y: 0,
+                },
+                self.d_1.x,
+            ),
+            1 => (
+                Vector2 {
+                    x: self.d_1.x,
+                    y: self.position,
+                },
+                self.d_1.y,
+            ),
+            2 => (
+                Vector2 {
+                    x: self.d_1.x - self.position,
+                    y: self.d_1.y,
+                },
+                self.d_1.x,
+            ),
+            3 => (
+                Vector2 {
+                    x: 0,
+                    y: self.d_1.y - self.position,
+                },
+                self.d_1.y,
+            ),
+            _ => return None,
+        };
+        self.position += 1;
+        if self.position >= limit {
+            self.position = 0;
+            self.edge_no += 1;
+            if self.d_1.x == 0 || self.d_1.y == 0 {
+                self.edge_no = 5;
+            }
+        }
+        Some(u2i(result))
+    }
+}
+
 pub(crate) struct IterOwned<T> {
     pub iter: T,
     pub position: Vector2<u32>,
@@ -146,5 +244,102 @@ impl<T: Iterator> Iterator for IterOwned<T> {
             }
         }
         Some(out)
+    }
+}
+
+impl<T: Array2dStorage> GenericArray2d<T> {
+    #[inline]
+    pub(crate) fn index_internal(&self, point: Vector2<i32>) -> Option<usize> {
+        let x = point.x - self.boundary.min.x;
+        let y = point.y - self.boundary.min.y;
+        if x < 0 || x >= self.boundary.dimension.x as i32 {
+            return None;
+        }
+        if y < 0 || y >= self.boundary.dimension.y as i32 {
+            return None;
+        }
+        Some(y as usize * self.pitch + x as usize)
+    }
+
+    pub(crate) fn slice_internal(&self, input: Boundary) -> (bool, Array2dRef<'_, T::Item>) {
+        if let Some(intersection) = self.boundary.intersection(input) {
+            let min = sub(intersection.min, self.boundary.min);
+            let offset = (min.y * self.pitch as i32 + min.x) as usize;
+            let is_perfect = intersection == input;
+            (
+                is_perfect,
+                Array2dRef {
+                    data: &self.data.slice()[offset..],
+                    boundary: intersection,
+                    pitch: self.pitch,
+                },
+            )
+        } else {
+            (false, Array2dRef::default())
+        }
+    }
+}
+
+impl<T: Array2dStorageMut> GenericArray2d<T> {
+    pub(crate) fn slice_mut_internal(
+        &mut self,
+        input: Boundary,
+    ) -> (bool, Array2dMut<'_, T::Item>) {
+        if let Some(intersection) = self.boundary.intersection(input) {
+            let min = sub(intersection.min, self.boundary.min);
+            let offset = (min.y * self.pitch as i32 + min.x) as usize;
+            let is_perfect = intersection == input;
+            (
+                is_perfect,
+                Array2dMut {
+                    data: &mut self.data.slice_mut()[offset..],
+                    boundary: intersection,
+                    pitch: self.pitch,
+                },
+            )
+        } else {
+            (false, Array2dMut::default())
+        }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::util::BorderIter;
+
+    #[test]
+    pub fn test_iter_border() {
+        fn v(iter: BorderIter) -> Vec<[i32; 2]> {
+            iter.map(Into::into).collect()
+        }
+        assert_eq!(v(BorderIter::new([0, 0].into())), Vec::<[i32; 2]>::new());
+        assert_eq!(v(BorderIter::new([1, 1].into())), vec![[0, 0]]);
+        assert_eq!(
+            v(BorderIter::new([1, 4].into())),
+            vec![[0, 0], [0, 1], [0, 2], [0, 3]]
+        );
+        assert_eq!(
+            v(BorderIter::new([4, 1].into())),
+            vec![[0, 0], [1, 0], [2, 0], [3, 0]]
+        );
+        assert_eq!(
+            v(BorderIter::new([2, 2].into())),
+            vec![[0, 0], [1, 0], [1, 1], [0, 1]]
+        );
+        assert_eq!(
+            v(BorderIter::new([3, 4].into())),
+            vec![
+                [0, 0],
+                [1, 0],
+                [2, 0],
+                [2, 1],
+                [2, 2],
+                [2, 3],
+                [1, 3],
+                [0, 3],
+                [0, 2],
+                [0, 1],
+            ]
+        );
     }
 }

@@ -119,7 +119,7 @@ pub fn getters() {
     let arr = Array2d::init(Boundary::min_max([-1, -1], [1, 1]), |v: IVec2| {
         v.x * 7 + v.y * 5
     });
-    let slice_1 = arr.get((0..=1, 0..=1)).unwrap();
+    let slice_1 = arr.get_slice((0..=1, 0..=1)).unwrap();
     iter_eq(
         slice_1.iter::<IVec2>(),
         [
@@ -130,12 +130,12 @@ pub fn getters() {
         ],
     );
 
-    assert!(arr.get((0..=2, 0..=2)).is_none());
+    assert!(arr.get_slice((0..=2, 0..=2)).is_none());
 
     let arr = Array2d::init(Boundary::min_max([0, 0], [8, 5]), |v: IVec2| {
         v.x * 7 + v.y * 5
     });
-    let slice_1 = arr.get([4, 4]..=[7, 5]).unwrap();
+    let slice_1 = arr.get_slice([4, 4]..=[7, 5]).unwrap();
     iter_eq(
         slice_1.iter::<IVec2>(),
         [

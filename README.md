@@ -7,13 +7,13 @@ Game development focused 2d array with signed index and offset support.
 
 ## Design
 
-`Array2d` represents a rectangular region in a tile map,
+`Array2d` represents a rectangular region in a tile map with an origin point,
 with non-represented regions considered `Default::default`.
 This allows us to implement functions like `resize` that are geometric
 instead of reinterpreting the underlying bytes.
 
 `Array2d` is row major, which makes it useful when working with gpu textures.
-There is currently no direct support for column major arrays.
+There is no direct support for column major arrays.
 
 ## Usage
 
@@ -31,6 +31,10 @@ do not care about overflows and `merge` if you do.
 We use a few traits to make your life easier when using this crate,
 here are the common implementors of these types.
 
+* `Into<Vector2<i32>>`
+
+The core `mint` trait that's implemented by `[i32; 2]` and types like `glam`'s `IVec2` or `nalgebra`'s `Vector2<i32>`.
+
 * `IntoBoundary`
 
 `IntoBoundary` means convertible to a 2d rectangle, types that implement it are
@@ -42,26 +46,10 @@ here are the common implementors of these types.
 | `impl RangeBounds<Into<Vector2<i32>>>` | `[-1, -1]..[1, 1]` | Only for `std` types |
 | `(impl RangeBounds<i32>, impl RangeBounds<i32>)` | `(-1..=1, -1..1)` | |
 
-* `Into<Vector2<i32>>`
-
-The core `mint` trait that's implemented by `[i32; 2]` and types like `glam`'s `IVec2` or `nalgebra`'s `Vector2<i32>`.
-
-* `Array2dIndexing`
-
-For the `get` function, types that implement it are
-
-| type | example(s) | note |
-| - | - | - |
-| `impl Into<Vector2<i32>>` | `[-1, -1]` | Returns a point. |
-| `impl IntoBoundary` | `Boundary::min_max([0, 0], [1024, 768])` | Returns a slice. |
-
 ## Usage with Math Libraries
 
 This crate uses `mint` to interop with math crates like `glam` or `nalgebra`.
 In `glam` or `bevy_math` for example, you might want enable the `mint` feature.
-The core trait `Into<Vector2<i32>>` is implemented by types like `glam`'s `IVec2`.
-Additionally, `[i32; 2]` always implements this trait and should be the easiest way to
-create a quick constant.
 
 ```rust
 array.get([1, 2])

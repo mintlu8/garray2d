@@ -1,4 +1,3 @@
-use crate::index::Array2dIndexing;
 use crate::storage::{Array2dStorage, Array2dStorageMut, Array2dStorageOwned};
 use crate::util::*;
 use crate::{Array2dMut, Array2dRef, Boundary, GenericArray2d, IntoBoundary};
@@ -63,11 +62,10 @@ impl<T: Array2dStorage> GenericArray2d<T> {
         self.boundary.contains(position)
     }
 
-    /// Returns either a point or a slice via [`IntoBoundary`].
-    ///
-    /// Unlike [`slice`](GenericArray2d::slice), this only returns `Some` if all points are contained in the array.
-    pub fn get<I: Array2dIndexing<M>, M>(&self, point: I) -> I::Result<'_, T::Item> {
-        point.index(self)
+    /// Returns a point in the array.
+    pub fn get(&self, point: impl Into<Vector2<i32>>) -> Option<&T::Item> {
+        let i = self.index_internal(point.into())?;
+        self.data.slice().get(i)
     }
 
     /// Shorthand to `self.get(point).cloned().unwrap_or_default()`.
@@ -75,7 +73,7 @@ impl<T: Array2dStorage> GenericArray2d<T> {
     where
         T::Item: Clone + Default,
     {
-        point.index(self).cloned().unwrap_or_default()
+        self.get(point).cloned().unwrap_or_default()
     }
 
     /// Iterate through pairs of points and values in the array.
@@ -102,9 +100,16 @@ impl<T: Array2dStorage> GenericArray2d<T> {
         self.rows().flatten()
     }
 
-    /// Obtain a truncated subslice.
+    /// Obtain a subslice.
     ///
-    /// Unlike `get`, returns a truncated result if out of bounds.
+    /// Unlike `slice`, fail if result is out of bounds.
+    pub fn get_slice(&self, boundary: impl IntoBoundary) -> Option<Array2dRef<'_, T::Item>> {
+        let (is_ok, result) = self.slice_internal(boundary.into_boundary());
+        is_ok.then_some(result)
+    }
+
+    /// Obtain a truncated subslice.
+    /// Unlike `get_slice`, returns a truncated result if out of bounds.
     pub fn slice(&self, boundary: impl IntoBoundary) -> Array2dRef<'_, T::Item> {
         self.slice_internal(boundary.into_boundary()).1
     }
@@ -125,13 +130,17 @@ impl<T: Array2dStorageMut> GenericArray2d<T> {
     /// Returns either a point or a slice via [`IntoBoundary`].
     ///
     /// Unlike [`slice_mut`](GenericArray2d::slice_mut), this only returns `Some` if all points are contained in the array.
-    pub fn get_mut<I: Array2dIndexing<M>, M>(&mut self, point: I) -> I::ResultMut<'_, T::Item> {
-        point.index_mut(self)
+    pub fn get_mut(
+        &mut self,
+        point: impl Into<Vector2<i32>>,
+    ) -> Option<&mut <T as Array2dStorage>::Item> {
+        let i = self.index_internal(point.into())?;
+        self.data.slice_mut().get_mut(i)
     }
 
-    /// Try set a position to a value, returns `true`.
+    /// Try set a position to a value, returns `true` if point is in boundary.
     pub fn set(&mut self, point: impl Into<Vector2<i32>>, value: T::Item) -> bool {
-        if let Some(v) = point.index_mut(self) {
+        if let Some(v) = self.get_mut(point) {
             *v = value;
             true
         } else {
@@ -174,14 +183,25 @@ impl<T: Array2dStorageMut> GenericArray2d<T> {
         }
     }
 
+    /// Obtain a subslice.
+    ///
+    /// Unlike `slice_mut`, fail if result is out of bounds.
+    pub fn get_slice_mut(
+        &mut self,
+        boundary: impl IntoBoundary,
+    ) -> Option<Array2dMut<'_, T::Item>> {
+        let (is_ok, result) = self.slice_mut_internal(boundary.into_boundary());
+        is_ok.then_some(result)
+    }
+
     /// Obtain a truncated subslice.
     ///
-    /// Unlike `get`, returns a truncated result if out of bounds.
+    /// Unlike `get_slice_mut`, returns a truncated result if out of bounds.
     pub fn slice_mut(&mut self, boundary: impl IntoBoundary) -> Array2dMut<'_, T::Item> {
         self.slice_mut_internal(boundary.into_boundary()).1
     }
 
-    /// Modify a region with another array as a "brush".
+    /// Modify a region with another array as a brush, out of bound portion are discarded.
     pub fn paint<U>(
         &mut self,
         brush: &GenericArray2d<impl Array2dStorage<Item = U>>,

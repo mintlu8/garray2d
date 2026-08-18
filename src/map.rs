@@ -63,11 +63,28 @@ impl<T: Array2dStorage> GenericArray2d<T> {
     }
 }
 
-impl<T: Array2dStorage<Item = bool>> GenericArray2d<T> {
+/// Indicates a point has a truth value or signifies being occupied.
+pub trait Truthy {
+    fn is_true(&self) -> bool;
+}
+
+impl Truthy for bool {
+    fn is_true(&self) -> bool {
+        *self
+    }
+}
+
+impl<T> Truthy for Option<T> {
+    fn is_true(&self) -> bool {
+        self.is_some()
+    }
+}
+
+impl<T: Array2dStorage<Item: Truthy>> GenericArray2d<T> {
     /// For a boolean 2d array, iterate through points with `true` values.
     pub fn iter_points<U: From<Vector2<i32>>>(&self) -> impl Iterator<Item = U> {
         self.iter::<U>()
-            .filter_map(|(pos, is_true)| is_true.then_some(pos))
+            .filter_map(|(pos, val)| val.is_true().then_some(pos))
     }
 
     /// For a boolean 2d array, iterate through points with `true` values.
@@ -76,7 +93,30 @@ impl<T: Array2dStorage<Item = bool>> GenericArray2d<T> {
         T: Array2dStorageOwned,
     {
         self.iter_owned::<U>()
-            .filter_map(|(pos, is_true)| is_true.then_some(pos))
+            .filter_map(|(pos, val)| val.is_true().then_some(pos))
+    }
+
+    /// For a boolean 2d array, iterate through points with `true` values that have at least one `false` or out of bounds neighbors.
+    pub fn border_detection<U: From<Vector2<i32>>>(&self) -> impl Iterator<Item = U> {
+        let pitch = self.pitch;
+        let slice = self.data.slice();
+        self.boundary()
+            .trim_border()
+            .iter()
+            .filter(move |p| {
+                let i = self.index_internal(*p).unwrap();
+                slice[i].is_true()
+                    && (!slice[i - 1].is_true()
+                        || !slice[i + 1].is_true()
+                        || !slice[i - pitch].is_true()
+                        || !slice[i + pitch].is_true())
+            })
+            .chain(
+                self.boundary()
+                    .iter_border()
+                    .filter(move |p| self.get(*p).is_some_and(|x| x.is_true())),
+            )
+            .map(Into::into)
     }
 }
 
@@ -102,7 +142,7 @@ impl<T: Array2dStorage<Item = Option<A>>, A> GenericArray2d<T> {
             .filter_map(|(pos, value)| value.as_mut().map(|v| (pos, v)))
     }
 
-    /// For a boolean 2d array, iterate through points with `Some` values.
+    /// For a option 2d array, iterate through points with `Some` values.
     pub fn iter_some_owned<U: From<Vector2<i32>>>(self) -> impl Iterator<Item = (U, A)>
     where
         T: Array2dStorageOwned,
