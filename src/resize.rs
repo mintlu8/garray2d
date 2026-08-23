@@ -113,25 +113,12 @@ impl<T: Array2dStorageOwned<Item: Default>> GenericArray2d<T> {
         }
     }
 
-    /// Insert points into the array,
-    /// points outside of the boundary will be discarded.
-    ///
-    /// # Returns
-    ///
-    /// Number of points discarded.
+    #[deprecated = "Use `paint_iter`."]
     pub fn try_extend<U: Into<Vector2<i32>>>(
         &mut self,
         positions: impl IntoIterator<Item = (U, T::Item)>,
     ) -> usize {
-        let mut discards = 0;
-        for (position, item) in positions {
-            if let Some(v) = self.get_mut(position) {
-                *v = item;
-            } else {
-                discards += 1;
-            }
-        }
-        discards
+        self.paint_iter(positions)
     }
 
     /// Measure the boundary of a set of points then extend them into the array,
@@ -144,7 +131,21 @@ impl<T: Array2dStorageOwned<Item: Default>> GenericArray2d<T> {
     ) {
         let boundary = Boundary::from_iter(positions.clone().into_iter().map(|(x, _)| x));
         self.resize_containing(boundary);
-        self.try_extend(positions);
+        self.paint_iter(positions);
+    }
+
+    /// Measure the boundary of a set of points then extend them into the array,
+    /// requires a [`Clone`] iterator to calculate the boundary on the first pass.
+    ///
+    /// For standard rust types like `&[T]` or `Vec<T>`, use `slice.iter().copied()`.
+    pub fn extend_by<U: Into<Vector2<i32>>, I>(
+        &mut self,
+        positions: impl IntoIterator<Item = (U, I)> + Clone,
+        f: impl FnMut(&mut T::Item, I),
+    ) {
+        let boundary = Boundary::from_iter(positions.clone().into_iter().map(|(x, _)| x));
+        self.resize_containing(boundary);
+        self.paint_iter_by(positions, f);
     }
 
     /// Extend the array to cover both array's boundaries and copy the other array into this array.

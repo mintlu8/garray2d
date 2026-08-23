@@ -12,9 +12,9 @@ mod serde;
 
 pub use boundary::Boundary;
 use boundary::IntoBoundary;
+pub use map::Truthy;
 use storage::{Array2dStorage, Array2dStorageOwned};
 pub use zip::Zip;
-pub use map::Truthy;
 
 pub mod traits {
     //! Lesser used traits.

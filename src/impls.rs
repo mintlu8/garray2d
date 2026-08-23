@@ -230,6 +230,49 @@ impl<T: Array2dStorageMut> GenericArray2d<T> {
             base2 += brush.pitch;
         }
     }
+
+    /// Insert points into the array,
+    /// points outside of the boundary will be discarded.
+    ///
+    /// # Returns
+    ///
+    /// Number of points discarded.
+    pub fn paint_iter<U: Into<Vector2<i32>>>(
+        &mut self,
+        positions: impl IntoIterator<Item = (U, T::Item)>,
+    ) -> usize {
+        let mut discards = 0;
+        for (position, item) in positions {
+            if let Some(v) = self.get_mut(position) {
+                *v = item;
+            } else {
+                discards += 1;
+            }
+        }
+        discards
+    }
+
+    /// Insert points into the array,
+    /// points outside of the boundary will be discarded.
+    ///
+    /// # Returns
+    ///
+    /// Number of points discarded.
+    pub fn paint_iter_by<U: Into<Vector2<i32>>, I>(
+        &mut self,
+        positions: impl IntoIterator<Item = (U, I)>,
+        mut f: impl FnMut(&mut T::Item, I),
+    ) -> usize {
+        let mut discards = 0;
+        for (position, item) in positions {
+            if let Some(v) = self.get_mut(position) {
+                f(v, item)
+            } else {
+                discards += 1;
+            }
+        }
+        discards
+    }
 }
 
 impl<T: Array2dStorageOwned> GenericArray2d<T> {
