@@ -85,6 +85,15 @@ impl<T: Array2dStorage> GenericArray2d<T> {
             .zip(self.values())
     }
 
+    /// Returns the array as a [`Array2dRef`].
+    pub fn as_slice(&self) -> Array2dRef<'_, T::Item> {
+        Array2dRef {
+            data: self.data.slice(),
+            boundary: self.boundary,
+            pitch: self.pitch,
+        }
+    }
+
     /// Returns continuous slices defined by the major axis.
     pub fn rows(&self) -> impl Iterator<Item = &[T::Item]> {
         let slice = self.data.slice();
@@ -155,6 +164,15 @@ impl<T: Array2dStorageMut> GenericArray2d<T> {
             .map(move |x| add(x, min))
             .map(|x| U::from(x))
             .zip(self.values_mut())
+    }
+
+    /// Returns the array as a [`Array2dMut`].
+    pub fn as_slice_mut(&mut self) -> Array2dMut<'_, T::Item> {
+        Array2dMut {
+            data: self.data.slice_mut(),
+            boundary: self.boundary,
+            pitch: self.pitch,
+        }
     }
 
     /// Returns continuous slices defined by the major axis.
@@ -367,16 +385,6 @@ impl<T: Array2dStorageOwned> GenericArray2d<T> {
         self.boundary = Boundary::EMPTY;
         self.data.vec_mut().clear();
         self.pitch = 0;
-    }
-
-    /// Returns the array as a [`Array2dRef`].
-    pub fn as_slice(&self) -> Array2dRef<'_, T::Item> {
-        self.slice(..)
-    }
-
-    /// Returns the array as a [`Array2dMut`].
-    pub fn as_slice_mut(&mut self) -> Array2dMut<'_, T::Item> {
-        self.slice_mut(..)
     }
 
     /// Iterate through owned pairs of points and values in the array.
